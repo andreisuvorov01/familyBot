@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a9f95470-d0b0-4c95-89fd-5b7ac73227a9" name="Changes" comment="security">
-      <change afterPath="$PROJECT_DIR$/app/bot/instance.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/services/scheduler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/tasks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/core/models/schemas.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/core/models/schemas.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-    </list>
+    <list default="true" id="a9f95470-d0b0-4c95-89fd-5b7ac73227a9" name="Changes" comment="miniapp" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -139,12 +131,21 @@
       <option name="project" value="LOCAL" />
       <updated>1768666990471</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="miniapp">
+      <option name="closed" value="true" />
+      <created>1768668385156</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1768668385156</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="first try" />
     <MESSAGE value="security" />
-    <option name="LAST_COMMIT_MESSAGE" value="security" />
+    <MESSAGE value="miniapp" />
+    <option name="LAST_COMMIT_MESSAGE" value="miniapp" />
   </component>
 </project>
