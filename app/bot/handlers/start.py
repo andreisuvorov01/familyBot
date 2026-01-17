@@ -5,6 +5,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from sqlalchemy import select, update
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+
+from app.core.config import settings
 from app.core.database import async_session_maker
 from app.core.models.user import User, UserRole
 from app.bot.keyboards import get_role_keyboard, get_family_keyboard
@@ -20,7 +22,7 @@ class FamilyStates(StatesGroup):
 @router.message(F.text == "Открыть задачи" or CommandStart())
 async def show_main_menu(message: types.Message):
     # ЗАМЕНИ URL на адрес своего сервера (например, через ngrok для тестов)
-    webapp_url = "vm526353.hosted-by.u1host.com"
+    web_app=WebAppInfo(url=settings.WEBAPP_URL)
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📋 Список дел", web_app=WebAppInfo(url=webapp_url))]

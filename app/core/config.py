@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     DATABASE_URL: str
     SECRET_KEY: str
+    WEBAPP_URL: str
 
     # Настройка для чтения .env файла
     model_config = SettingsConfigDict(
