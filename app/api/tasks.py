@@ -13,31 +13,39 @@ from app.bot.instance import bot
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
 
-# Вспомогательная функция проверки доступа
-async def get_current_user(init_data: str, session: AsyncSession):
-    user_data = verify_telegram_data(init_data)
-    stmt = select(User).where(User.tg_id == user_data["id"])
-    user = (await session.execute(stmt)).scalar_one_or_none()
-    if not user or not user.family_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-    return user
+# Вспомогательная функция (Dependency)
+async def get_current_user(
+        init_data: str = Header(..., alias="X-TG-Data"),
+        session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        user_data = verify_telegram_data(init_data)
+        stmt = select(User).where(User.tg_id == user_data["id"])
+        user = (await session.execute(stmt)).scalar_one_or_none()
+        if not user or not user.family_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Auth failed")
 
 
-# --- TASKS CRUD ---
+# --- TASKS ---
 
 @router.get("/", response_model=list[TaskRead])
 async def get_tasks(
-        user=Depends(get_current_user),
+        user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
-    # Логика видимости
     vis = [TaskVisibility.COMMON]
-    vis.append(TaskVisibility.HUSBAND if user.role.value == "husband" else TaskVisibility.WIFE)
+    if user.role.value == "husband":
+        vis.append(TaskVisibility.HUSBAND)
+    else:
+        vis.append(TaskVisibility.WIFE)
 
     query = select(Task).where(
         Task.family_id == user.family_id,
         Task.visibility.in_(vis)
-    ).options(selectinload(Task.subtasks)).order_by(Task.created_at.desc())  # Подгружаем подзадачи
+    ).options(selectinload(Task.subtasks)).order_by(Task.created_at.desc())
 
     return (await session.execute(query)).scalars().all()
 
@@ -45,15 +53,20 @@ async def get_tasks(
 @router.post("/", response_model=TaskRead)
 async def create_task(
         task_in: TaskCreate,
-        user=Depends(get_current_user),
+        user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
-    new_task = Task(**task_in.dict(), owner_id=user.id, family_id=user.family_id)
+    new_task = Task(
+        title=task_in.title,
+        description=task_in.description,
+        visibility=task_in.visibility,
+        owner_id=user.id,
+        family_id=user.family_id
+    )
     session.add(new_task)
     await session.commit()
     await session.refresh(new_task, attribute_names=["subtasks"])
 
-    # Уведомление
     try:
         partner_stmt = select(User).where(User.family_id == user.family_id, User.id != user.id)
         partner = (await session.execute(partner_stmt)).scalar_one_or_none()
@@ -69,13 +82,12 @@ async def create_task(
 async def update_task(
         task_id: int,
         updates: TaskUpdate,
-        user=Depends(get_current_user),
+        user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
     stmt = select(Task).where(Task.id == task_id, Task.family_id == user.family_id)
     task = (await session.execute(stmt)).scalar_one_or_none()
-    if not task:
-        raise HTTPException(404)
+    if not task: raise HTTPException(404)
 
     if updates.status: task.status = updates.status
     if updates.title: task.title = updates.title
@@ -87,7 +99,7 @@ async def update_task(
 @router.delete("/{task_id}")
 async def delete_task(
         task_id: int,
-        user=Depends(get_current_user),
+        user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
     stmt = delete(Task).where(Task.id == task_id, Task.family_id == user.family_id)
@@ -96,16 +108,15 @@ async def delete_task(
     return {"ok": True}
 
 
-# --- SUBTASKS CRUD ---
+# --- SUBTASKS ---
 
 @router.post("/{task_id}/subtasks", response_model=SubtaskRead)
 async def add_subtask(
         task_id: int,
         sub_in: SubtaskCreate,
-        user=Depends(get_current_user),
+        user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
-    # Проверяем, что задача наша
     task = (await session.execute(
         select(Task).where(Task.id == task_id, Task.family_id == user.family_id))).scalar_one_or_none()
     if not task: raise HTTPException(404)
@@ -121,10 +132,9 @@ async def add_subtask(
 async def toggle_subtask(
         sub_id: int,
         is_done: bool,
-        user=Depends(get_current_user),
+        user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
-    # В идеале нужно проверять family_id через join, но для простоты пропустим
     stmt = update(Subtask).where(Subtask.id == sub_id).values(is_done=is_done)
     await session.execute(stmt)
     await session.commit()
