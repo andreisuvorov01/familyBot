@@ -51,7 +51,8 @@
         <h2 class="text-xl font-bold mb-4">Новая задача</h2>
 
         <input type="text" id="new-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-blue-500 transition" placeholder="Название...">
-
+        <label class="block text-xs font-bold opacity-50 mb-1 ml-1">Дедлайн (необязательно)</label>
+<input type="datetime-local" id="new-deadline" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-3 rounded-xl outline-none mb-4 text-sm">
         <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="common" checked class="hidden">

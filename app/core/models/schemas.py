@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from .Task import TaskVisibility
+from typing import Optional
 
 # --- Subtasks ---
 class SubtaskBase(BaseModel):
@@ -22,8 +23,9 @@ class TaskRead(BaseModel):
     description: str | None
     status: str
     visibility: TaskVisibility
+    deadline: datetime | None # <-- Новое поле
     created_at: datetime
-    subtasks: list[SubtaskRead] = [] # <-- Теперь задача содержит список подзадач
+    subtasks: list[SubtaskRead] = []
 
     class Config:
         from_attributes = True
@@ -31,7 +33,8 @@ class TaskRead(BaseModel):
 class TaskCreate(BaseModel):
     title: str
     description: str | None = None
-    visibility: TaskVisibility = TaskVisibility.COMMON
+    visibility: str = "common"
+    deadline: datetime | None = None
 
 class TaskUpdate(BaseModel):
     status: str | None = None

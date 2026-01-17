@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import String, Enum, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
+from sqlalchemy import Boolean
 
 
 class TaskVisibility(enum.Enum):
@@ -29,14 +30,15 @@ class Task(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")
     visibility: Mapped[TaskVisibility] = mapped_column(Enum(TaskVisibility), default=TaskVisibility.COMMON)
 
+    # --- НОВЫЕ ПОЛЯ ---
+    deadline: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    # ------------------
+
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     family_id: Mapped[str] = mapped_column(String(10), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    # Связь с подзадачами (Eager loading)
     subtasks: Mapped[list["Subtask"]] = relationship(
-        "Subtask",
-        backref="task",
-        lazy="selectin",
-        cascade="all, delete-orphan"
+        "Subtask", backref="task", lazy="selectin", cascade="all, delete-orphan"
     )
