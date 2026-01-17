@@ -6,218 +6,93 @@
     <title>Family Tasks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; background: var(--tg-theme-secondary-bg-color, #f3f4f6); color: var(--tg-theme-text-color); user-select: none; }
-        .modal { position: fixed; inset: 0; z-index: 50; transition: 0.3s; pointer-events: none; opacity: 0; }
-        .modal.active { pointer-events: auto; opacity: 1; }
-        .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
-        .sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--tg-theme-bg-color); border-radius: 20px 20px 0 0; padding: 20px; transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 90vh; overflow-y: auto; }
-        .modal.active .sheet { bottom: 0; }
-        .done-text { text-decoration: line-through; opacity: 0.6; }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 </head>
-<body class="pb-24 px-4 pt-4">
+<body class="pb-24 px-4 pt-2">
 
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Список дел</h1>
-        <div class="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold" id="role-badge">FAMILY</div>
+    <header class="flex justify-between items-center mb-4 sticky top-0 py-2 bg-[var(--tg-theme-secondary-bg-color)] z-20">
+        <div>
+            <h1 class="text-2xl font-bold">Задачи</h1>
+            <p class="text-xs opacity-60">Семейный планировщик</p>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
+            <span id="avatar-letter">?</span>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="flex bg-[var(--tg-theme-bg-color)] p-1 rounded-xl shadow-sm mb-4">
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition bg-[var(--tg-theme-button-color)] text-white shadow-md" data-filter="all">Все</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60" data-filter="personal">Личные</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60" data-filter="common">Общие</button>
     </div>
 
-    <!-- Список -->
-    <div id="task-list" class="space-y-3"></div>
+    <!-- Task List -->
+    <div id="task-list" class="space-y-3">
+        <!-- Skeleton Loading -->
+        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+    </div>
 
-    <!-- FAB кнопка -->
-    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-90 transition z-40">
+    <!-- FAB (Floating Action Button) -->
+    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-[var(--tg-theme-button-color,#3b82f6)] text-white rounded-full shadow-lg grid place-content-center text-2xl active:scale-90 transition z-30">
         <i class="fa-solid fa-plus"></i>
     </button>
 
-    <!-- Модалка СОЗДАНИЯ -->
-    <div id="modal-create" class="modal">
-        <div class="modal-bg" onclick="closeModal('modal-create')"></div>
-        <div class="sheet">
-            <h2 class="text-xl font-bold mb-4">Новая задача</h2>
-            <input type="text" id="new-task-title" placeholder="Что нужно сделать?" class="w-full bg-gray-100 p-4 rounded-xl mb-4 text-black outline-none">
-            <button onclick="apiCreateTask()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold">Сохранить</button>
-        </div>
-    </div>
+    <!-- Overlay -->
+    <div id="overlay" class="modal-overlay"></div>
 
-    <!-- Модалка ДЕТАЛЕЙ -->
-    <div id="modal-detail" class="modal">
-        <div class="modal-bg" onclick="closeModal('modal-detail')"></div>
-        <div class="sheet">
-            <div class="flex justify-between items-start mb-4">
-                <h2 id="detail-title" class="text-xl font-bold leading-tight flex-1 mr-2"></h2>
-                <button onclick="apiDeleteTask()" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
-            </div>
+    <!-- Modal: Create Task -->
+    <div id="create-modal" class="bottom-sheet">
+        <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
+        <h2 class="text-xl font-bold mb-4">Новая задача</h2>
 
-            <p id="detail-desc" class="text-sm opacity-60 mb-6"></p>
+        <input type="text" id="new-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-blue-500 transition" placeholder="Название...">
 
-            <!-- Подзадачи -->
-            <div class="mb-6">
-                <h3 class="text-xs font-bold uppercase opacity-50 mb-2">Подзадачи</h3>
-                <div id="subtasks-list" class="space-y-2"></div>
-
-                <div class="flex gap-2 mt-3">
-                    <input type="text" id="new-subtask-input" placeholder="Добавить шаг..." class="flex-1 bg-gray-100 p-2 rounded-lg text-sm text-black outline-none">
-                    <button onclick="apiAddSubtask()" class="bg-gray-200 px-4 rounded-lg text-gray-600"><i class="fa-solid fa-plus"></i></button>
+        <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
+            <label class="cursor-pointer relative">
+                <input type="radio" name="visibility" value="common" checked class="hidden">
+                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-users text-lg"></i> Семья
                 </div>
-            </div>
-
-            <button id="btn-complete" onclick="apiToggleStatus()" class="w-full py-3 rounded-xl font-semibold bg-gray-100 text-gray-800 transition">
-                Отметить выполненным
-            </button>
+            </label>
+            <label class="cursor-pointer relative">
+                <input type="radio" name="visibility" value="private" class="hidden">
+                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-lock text-lg"></i> Личное
+                </div>
+            </label>
         </div>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        let allTasks = [];
-        let currentTaskId = null;
+    <!-- Modal: Task Detail -->
+    <div id="detail-modal" class="bottom-sheet">
+        <div class="flex justify-between items-start mb-4">
+            <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2">Заголовок</h2>
+            <button onclick="deleteTask()" class="text-red-500 p-2 active:opacity-50"><i class="fa-solid fa-trash"></i></button>
+        </div>
 
-        // --- API ---
-        const api = {
-            get: (url) => fetch(url, { headers: { 'X-TG-Data': tg.initData } }).then(r => r.json()),
-            post: (url, data) => fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-TG-Data': tg.initData },
-                body: JSON.stringify(data)
-            }).then(r => r.json()),
-            patch: (url, data) => fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'X-TG-Data': tg.initData },
-                body: JSON.stringify(data)
-            }),
-            delete: (url) => fetch(url, { method: 'DELETE', headers: { 'X-TG-Data': tg.initData } })
-        };
+        <!-- Subtasks -->
+        <div class="mb-6">
+            <h3 class="text-xs font-bold uppercase opacity-50 mb-2">Чек-лист</h3>
+            <div id="subtasks-list" class="space-y-1 mb-3"></div>
 
-        // --- Logic ---
-        async function loadTasks() {
-            try {
-                allTasks = await api.get('/api/tasks/');
-                renderList();
-            } catch(e) { console.error(e); }
-        }
+            <div class="flex gap-2">
+                <input type="text" id="new-subtask" placeholder="Добавить шаг..." class="flex-1 bg-[var(--tg-theme-secondary-bg-color)] px-3 py-2 rounded-lg text-sm outline-none">
+                <button onclick="addSubtask()" class="bg-[var(--tg-theme-secondary-bg-color)] px-3 rounded-lg"><i class="fa-solid fa-plus"></i></button>
+            </div>
+        </div>
 
-        async function apiCreateTask() {
-            const title = document.getElementById('new-task-title').value;
-            if(!title) return;
-            await api.post('/api/tasks/', { title, visibility: 'common' });
-            document.getElementById('new-task-title').value = '';
-            closeModal('modal-create');
-            loadTasks();
-            tg.HapticFeedback.notificationOccurred('success');
-        }
+        <button id="btn-status" class="w-full py-3 rounded-xl font-semibold bg-green-500 text-white">
+            Завершить
+        </button>
+    </div>
 
-        async function apiDeleteTask() {
-            tg.showConfirm("Удалить задачу?", async (ok) => {
-                if(ok) {
-                    await api.delete(`/api/tasks/${currentTaskId}`);
-                    closeModal('modal-detail');
-                    loadTasks();
-                }
-            });
-        }
-
-        async function apiToggleStatus() {
-            const task = allTasks.find(t => t.id === currentTaskId);
-            const newStatus = task.status === 'done' ? 'pending' : 'done';
-
-            // Оптимистичное обновление UI
-            task.status = newStatus;
-            updateDetailView(task);
-
-            await api.patch(`/api/tasks/${currentTaskId}`, { status: newStatus });
-            loadTasks();
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-
-        async function apiAddSubtask() {
-            const input = document.getElementById('new-subtask-input');
-            if(!input.value) return;
-
-            const sub = await api.post(`/api/tasks/${currentTaskId}/subtasks`, { title: input.value });
-            input.value = '';
-
-            // Обновляем локально
-            const task = allTasks.find(t => t.id === currentTaskId);
-            task.subtasks.push(sub);
-            renderSubtasks(task.subtasks);
-        }
-
-        async function apiToggleSubtask(subId, isDone) {
-            tg.HapticFeedback.selectionChanged();
-            await api.patch(`/api/tasks/subtasks/${subId}?is_done=${isDone}`, {});
-        }
-
-        // --- Render ---
-        function renderList() {
-            const list = document.getElementById('task-list');
-            list.innerHTML = '';
-            allTasks.forEach(task => {
-                const el = document.createElement('div');
-                const isDone = task.status === 'done';
-                el.className = `bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 active:scale-95 transition ${isDone ? 'opacity-50' : ''}`;
-                el.onclick = () => openDetail(task);
-                el.innerHTML = `
-                    <div class="w-6 h-6 rounded-full border-2 ${isDone ? 'bg-green-500 border-green-500' : 'border-gray-300'}"></div>
-                    <span class="font-medium ${isDone ? 'line-through' : ''}">${task.title}</span>
-                `;
-                list.appendChild(el);
-            });
-        }
-
-        function openDetail(task) {
-            currentTaskId = task.id;
-            updateDetailView(task);
-            renderSubtasks(task.subtasks);
-
-            document.getElementById('modal-detail').classList.add('active');
-            tg.BackButton.show();
-            tg.BackButton.onClick(() => closeModal('modal-detail'));
-        }
-
-        function updateDetailView(task) {
-            const isDone = task.status === 'done';
-            const btn = document.getElementById('btn-complete');
-
-            document.getElementById('detail-title').innerText = task.title;
-            document.getElementById('detail-title').className = `text-xl font-bold leading-tight flex-1 mr-2 ${isDone ? 'line-through opacity-50' : ''}`;
-            document.getElementById('detail-desc').innerText = task.description || "Нет описания";
-
-            btn.innerText = isDone ? "Вернуть в работу" : "Завершить задачу";
-            btn.className = `w-full py-3 rounded-xl font-semibold transition ${isDone ? 'bg-gray-200 text-gray-600' : 'bg-green-500 text-white'}`;
-        }
-
-        function renderSubtasks(subs) {
-            const container = document.getElementById('subtasks-list');
-            container.innerHTML = '';
-            subs.forEach(sub => {
-                const div = document.createElement('div');
-                div.className = "flex items-center gap-3 p-2 bg-gray-50 rounded-lg";
-                div.innerHTML = `
-                    <input type="checkbox" ${sub.is_done ? 'checked' : ''}
-                        class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        onchange="apiToggleSubtask(${sub.id}, this.checked)">
-                    <span class="text-sm ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // --- Utils ---
-        function openCreateModal() {
-            document.getElementById('modal-create').classList.add('active');
-        }
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-            if(id === 'modal-detail') tg.BackButton.hide();
-        }
-
-        loadTasks();
-    </script>
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
