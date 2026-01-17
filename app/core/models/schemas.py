@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from .task import TaskVisibility
+from .Task import TaskVisibility
 
 # --- Subtasks ---
 class SubtaskBase(BaseModel):
