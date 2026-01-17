@@ -25,7 +25,7 @@ async def show_main_menu(message: types.Message):
     web_app=WebAppInfo(url=settings.WEBAPP_URL)
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📋 Список дел", web_app=WebAppInfo(url=webapp_url))]
+        [InlineKeyboardButton(text="📋 Список дел", web_app=WebAppInfo(url=settings.WEBAPP_URL))]
     ])
 
     await message.answer("Ваш семейный органайзер готов!", reply_markup=keyboard)
