@@ -9,296 +9,215 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
-            color: var(--tg-theme-text-color, #1f2937);
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Скрытие скроллбара */
-        ::-webkit-scrollbar { display: none; }
-
-        /* Анимация появления */
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Модальное окно (шторка) */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 40;
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-
-        .modal-content {
-            position: fixed; bottom: -100%; left: 0; right: 0;
-            background: var(--tg-theme-bg-color, #ffffff);
-            border-radius: 24px 24px 0 0; padding: 24px;
-            transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 50;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-        }
-        .modal-content.active { bottom: 0; }
-
-        .loader {
-            border: 3px solid rgba(0,0,0,0.1); border-left-color: var(--tg-theme-button-color, #3b82f6);
-            border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        body { font-family: 'Inter', sans-serif; background: var(--tg-theme-secondary-bg-color, #f3f4f6); color: var(--tg-theme-text-color); user-select: none; }
+        .modal { position: fixed; inset: 0; z-index: 50; transition: 0.3s; pointer-events: none; opacity: 0; }
+        .modal.active { pointer-events: auto; opacity: 1; }
+        .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        .sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--tg-theme-bg-color); border-radius: 20px 20px 0 0; padding: 20px; transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 90vh; overflow-y: auto; }
+        .modal.active .sheet { bottom: 0; }
+        .done-text { text-decoration: line-through; opacity: 0.6; }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-24 px-4 pt-4">
 
-    <!-- Заголовок -->
-    <header class="pt-4 px-5 pb-2 sticky top-0 bg-[var(--tg-theme-secondary-bg-color)] z-10">
-        <div class="flex justify-between items-center mb-4">
-            <div>
-                <h1 class="text-2xl font-bold leading-tight">Мои задачи</h1>
-                <p class="text-xs opacity-60" id="current-date">Сегодня</p>
-            </div>
-            <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                ?
-            </div>
-        </div>
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Список дел</h1>
+        <div class="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold" id="role-badge">FAMILY</div>
+    </div>
 
-        <!-- Табы фильтров -->
-        <div class="flex p-1 bg-[var(--tg-theme-bg-color)] rounded-xl shadow-sm mb-2">
-            <button onclick="setFilter('all')" id="tab-all" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all bg-[var(--tg-theme-button-color)] text-white shadow-sm">
-                Все
-            </button>
-            <button onclick="setFilter('personal')" id="tab-personal" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all opacity-60">
-                Личные
-            </button>
-            <button onclick="setFilter('common')" id="tab-common" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all opacity-60">
-                Общие
-            </button>
-        </div>
-    </header>
+    <!-- Список -->
+    <div id="task-list" class="space-y-3"></div>
 
-    <!-- Список задач -->
-    <main id="task-list" class="px-4 space-y-3 mt-2">
-        <!-- Скелетон загрузки -->
-        <div id="skeleton" class="space-y-3">
-            <div class="h-24 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
-            <div class="h-24 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
-            <div class="h-24 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
-        </div>
-    </main>
-
-    <!-- Плавающая кнопка (FAB) -->
-    <button onclick="openModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-[var(--tg-theme-button-color,#3b82f6)] text-white rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-90 transition-transform z-30">
+    <!-- FAB кнопка -->
+    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-90 transition z-40">
         <i class="fa-solid fa-plus"></i>
     </button>
 
-    <!-- Модальное окно создания -->
-    <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
-    <div class="modal-content" id="modal-content">
-        <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
-        <h2 class="text-xl font-bold mb-4">Новая задача</h2>
+    <!-- Модалка СОЗДАНИЯ -->
+    <div id="modal-create" class="modal">
+        <div class="modal-bg" onclick="closeModal('modal-create')"></div>
+        <div class="sheet">
+            <h2 class="text-xl font-bold mb-4">Новая задача</h2>
+            <input type="text" id="new-task-title" placeholder="Что нужно сделать?" class="w-full bg-gray-100 p-4 rounded-xl mb-4 text-black outline-none">
+            <button onclick="apiCreateTask()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold">Сохранить</button>
+        </div>
+    </div>
 
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-medium opacity-60 mb-1">Название</label>
-                <input type="text" id="input-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition" placeholder="Например: Купить молоко">
+    <!-- Модалка ДЕТАЛЕЙ -->
+    <div id="modal-detail" class="modal">
+        <div class="modal-bg" onclick="closeModal('modal-detail')"></div>
+        <div class="sheet">
+            <div class="flex justify-between items-start mb-4">
+                <h2 id="detail-title" class="text-xl font-bold leading-tight flex-1 mr-2"></h2>
+                <button onclick="apiDeleteTask()" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
             </div>
 
-            <div>
-                <label class="block text-xs font-medium opacity-60 mb-1">Видимость</label>
-                <div class="flex gap-2">
-                    <label class="flex-1 cursor-pointer">
-                        <input type="radio" name="visibility" value="common" checked class="hidden peer">
-                        <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border-2 border-transparent peer-checked:border-[var(--tg-theme-button-color)] peer-checked:text-[var(--tg-theme-button-color)] transition text-center font-medium text-sm">
-                            <i class="fa-solid fa-users mr-1"></i> Семья
-                        </div>
-                    </label>
-                    <label class="flex-1 cursor-pointer">
-                        <input type="radio" name="visibility" value="private" class="hidden peer">
-                        <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border-2 border-transparent peer-checked:border-[var(--tg-theme-button-color)] peer-checked:text-[var(--tg-theme-button-color)] transition text-center font-medium text-sm">
-                            <i class="fa-solid fa-lock mr-1"></i> Личное
-                        </div>
-                    </label>
+            <p id="detail-desc" class="text-sm opacity-60 mb-6"></p>
+
+            <!-- Подзадачи -->
+            <div class="mb-6">
+                <h3 class="text-xs font-bold uppercase opacity-50 mb-2">Подзадачи</h3>
+                <div id="subtasks-list" class="space-y-2"></div>
+
+                <div class="flex gap-2 mt-3">
+                    <input type="text" id="new-subtask-input" placeholder="Добавить шаг..." class="flex-1 bg-gray-100 p-2 rounded-lg text-sm text-black outline-none">
+                    <button onclick="apiAddSubtask()" class="bg-gray-200 px-4 rounded-lg text-gray-600"><i class="fa-solid fa-plus"></i></button>
                 </div>
             </div>
+
+            <button id="btn-complete" onclick="apiToggleStatus()" class="w-full py-3 rounded-xl font-semibold bg-gray-100 text-gray-800 transition">
+                Отметить выполненным
+            </button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.enableClosingConfirmation();
-
-        // Инициализация цветов и данных
-        document.body.style.backgroundColor = tg.themeParams.secondary_bg_color || '#f3f4f6';
-
-        const user = tg.initDataUnsafe?.user;
-        if(user) {
-            document.getElementById('user-avatar').innerText = user.first_name[0].toUpperCase();
-        }
-
-        // Дата
-        const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString('ru-RU', dateOptions);
-
         let allTasks = [];
-        let currentFilter = 'all';
+        let currentTaskId = null;
 
         // --- API ---
+        const api = {
+            get: (url) => fetch(url, { headers: { 'X-TG-Data': tg.initData } }).then(r => r.json()),
+            post: (url, data) => fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-TG-Data': tg.initData },
+                body: JSON.stringify(data)
+            }).then(r => r.json()),
+            patch: (url, data) => fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-TG-Data': tg.initData },
+                body: JSON.stringify(data)
+            }),
+            delete: (url) => fetch(url, { method: 'DELETE', headers: { 'X-TG-Data': tg.initData } })
+        };
 
-        async function fetchTasks() {
+        // --- Logic ---
+        async function loadTasks() {
             try {
-                const res = await fetch('/api/tasks/', {
-                    headers: { 'X-TG-Data': tg.initData }
-                });
-                if (!res.ok) throw new Error();
-                allTasks = await res.json();
-                renderTasks();
-            } catch (e) {
-                console.error(e);
-            } finally {
-                document.getElementById('skeleton').style.display = 'none';
-            }
+                allTasks = await api.get('/api/tasks/');
+                renderList();
+            } catch(e) { console.error(e); }
         }
 
-        async function createTask() {
-            const title = document.getElementById('input-title').value;
-            if(!title) {
-                tg.HapticFeedback.notificationOccurred('error');
-                return;
-            }
+        async function apiCreateTask() {
+            const title = document.getElementById('new-task-title').value;
+            if(!title) return;
+            await api.post('/api/tasks/', { title, visibility: 'common' });
+            document.getElementById('new-task-title').value = '';
+            closeModal('modal-create');
+            loadTasks();
+            tg.HapticFeedback.notificationOccurred('success');
+        }
 
-            // Определяем видимость
-            // ВАЖНО: На бэкенде мы ждем 'husband' или 'wife' для личных задач.
-            // Но фронтенд не знает, кто мы (муж или жена), он знает только "private".
-            // Поэтому мы отправим visibility в зависимости от текущей роли юзера?
-            // УПРОЩЕНИЕ: Пока шлем visibility прямо из формы, но нужно доработать бэкенд,
-            // чтобы он понимал контекст.
-            // Для MVP: common - общая, а для личной...
-            // В предыдущем коде API мы не реализовали авто-определение роли.
-            // Давай сделаем хитро: если private -> шлем visibility=common,
-            // но в description добавим пометку? Нет, лучше шлем 'common' или...
-
-            // FIX: Давай пока слать 'common' всегда для семьи, а логику 'private' докрутим позже.
-            const isCommon = document.querySelector('input[name="visibility"]:checked').value === 'common';
-            // Если выбрано "Личное", нам нужно знать роль.
-            // Пока упростим: по умолчанию создаем COMMON.
-
-            const payload = {
-                title: title,
-                visibility: isCommon ? "common" : "common" // Временно, пока не научим API понимать private
-            };
-
-            tg.MainButton.showProgress();
-
-            try {
-                const res = await fetch('/api/tasks/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-TG-Data': tg.initData
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if(res.ok) {
-                    tg.HapticFeedback.notificationOccurred('success');
-                    closeModal();
-                    document.getElementById('input-title').value = '';
-                    fetchTasks(); // Обновляем список
-                } else {
-                    tg.HapticFeedback.notificationOccurred('error');
+        async function apiDeleteTask() {
+            tg.showConfirm("Удалить задачу?", async (ok) => {
+                if(ok) {
+                    await api.delete(`/api/tasks/${currentTaskId}`);
+                    closeModal('modal-detail');
+                    loadTasks();
                 }
-            } catch(e) {
-                tg.HapticFeedback.notificationOccurred('error');
-            } finally {
-                tg.MainButton.hideProgress();
-                tg.MainButton.hide();
-            }
-        }
-
-        // --- UI ---
-
-        function renderTasks() {
-            const list = document.getElementById('task-list');
-            list.querySelectorAll('.task-card').forEach(e => e.remove()); // Очистка
-
-            const filtered = allTasks.filter(t => {
-                if (currentFilter === 'all') return true;
-                if (currentFilter === 'common') return t.visibility === 'common';
-                return t.visibility !== 'common'; // personal
-            });
-
-            if (filtered.length === 0) {
-                list.innerHTML += `
-                    <div class="task-card text-center py-10 opacity-40 fade-in">
-                        <i class="fa-solid fa-mug-hot text-4xl mb-3"></i>
-                        <p>Задач нет. Отдыхаем!</p>
-                    </div>`;
-                return;
-            }
-
-            filtered.forEach(task => {
-                const isDone = task.status === 'done';
-                const icon = task.visibility === 'common'
-                    ? '<i class="fa-solid fa-users text-blue-500"></i>'
-                    : '<i class="fa-solid fa-user-lock text-purple-500"></i>';
-
-                const card = document.createElement('div');
-                card.className = `task-card bg-[var(--tg-theme-bg-color)] p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between fade-in mb-3 active:scale-[0.98] transition-transform`;
-                card.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                            ${icon}
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="font-semibold truncate ${isDone ? 'line-through opacity-50' : ''}">${task.title}</h3>
-                            <p class="text-xs opacity-50 truncate">${new Date(task.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                        </div>
-                    </div>
-                    <div class="w-6 h-6 rounded-full border-2 border-gray-300 ${isDone ? 'bg-green-500 border-transparent' : ''}"></div>
-                `;
-                list.appendChild(card);
             });
         }
 
-        function setFilter(type) {
-            currentFilter = type;
+        async function apiToggleStatus() {
+            const task = allTasks.find(t => t.id === currentTaskId);
+            const newStatus = task.status === 'done' ? 'pending' : 'done';
+
+            // Оптимистичное обновление UI
+            task.status = newStatus;
+            updateDetailView(task);
+
+            await api.patch(`/api/tasks/${currentTaskId}`, { status: newStatus });
+            loadTasks();
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        async function apiAddSubtask() {
+            const input = document.getElementById('new-subtask-input');
+            if(!input.value) return;
+
+            const sub = await api.post(`/api/tasks/${currentTaskId}/subtasks`, { title: input.value });
+            input.value = '';
+
+            // Обновляем локально
+            const task = allTasks.find(t => t.id === currentTaskId);
+            task.subtasks.push(sub);
+            renderSubtasks(task.subtasks);
+        }
+
+        async function apiToggleSubtask(subId, isDone) {
             tg.HapticFeedback.selectionChanged();
+            await api.patch(`/api/tasks/subtasks/${subId}?is_done=${isDone}`, {});
+        }
 
-            // Обновляем стили табов
-            ['all', 'personal', 'common'].forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if(t === type) {
-                    btn.classList.add('bg-[var(--tg-theme-button-color)]', 'text-white', 'shadow-sm');
-                    btn.classList.remove('opacity-60');
-                } else {
-                    btn.classList.remove('bg-[var(--tg-theme-button-color)]', 'text-white', 'shadow-sm');
-                    btn.classList.add('opacity-60');
-                }
+        // --- Render ---
+        function renderList() {
+            const list = document.getElementById('task-list');
+            list.innerHTML = '';
+            allTasks.forEach(task => {
+                const el = document.createElement('div');
+                const isDone = task.status === 'done';
+                el.className = `bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 active:scale-95 transition ${isDone ? 'opacity-50' : ''}`;
+                el.onclick = () => openDetail(task);
+                el.innerHTML = `
+                    <div class="w-6 h-6 rounded-full border-2 ${isDone ? 'bg-green-500 border-green-500' : 'border-gray-300'}"></div>
+                    <span class="font-medium ${isDone ? 'line-through' : ''}">${task.title}</span>
+                `;
+                list.appendChild(el);
             });
-            renderTasks();
         }
 
-        // --- Modal Logic ---
+        function openDetail(task) {
+            currentTaskId = task.id;
+            updateDetailView(task);
+            renderSubtasks(task.subtasks);
 
-        function openModal() {
-            tg.HapticFeedback.impactOccurred('medium');
-            document.getElementById('modal-overlay').classList.add('active');
-            document.getElementById('modal-content').classList.add('active');
-
-            // Настраиваем MainButton (Кнопка внизу экрана Telegram)
-            tg.MainButton.setText("СОЗДАТЬ ЗАДАЧУ");
-            tg.MainButton.show();
-            tg.MainButton.onClick(createTask);
+            document.getElementById('modal-detail').classList.add('active');
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => closeModal('modal-detail'));
         }
 
-        function closeModal() {
-            document.getElementById('modal-overlay').classList.remove('active');
-            document.getElementById('modal-content').classList.remove('active');
-            tg.MainButton.hide();
-            tg.MainButton.offClick(createTask);
+        function updateDetailView(task) {
+            const isDone = task.status === 'done';
+            const btn = document.getElementById('btn-complete');
+
+            document.getElementById('detail-title').innerText = task.title;
+            document.getElementById('detail-title').className = `text-xl font-bold leading-tight flex-1 mr-2 ${isDone ? 'line-through opacity-50' : ''}`;
+            document.getElementById('detail-desc').innerText = task.description || "Нет описания";
+
+            btn.innerText = isDone ? "Вернуть в работу" : "Завершить задачу";
+            btn.className = `w-full py-3 rounded-xl font-semibold transition ${isDone ? 'bg-gray-200 text-gray-600' : 'bg-green-500 text-white'}`;
         }
 
-        // Запуск
-        fetchTasks();
+        function renderSubtasks(subs) {
+            const container = document.getElementById('subtasks-list');
+            container.innerHTML = '';
+            subs.forEach(sub => {
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-3 p-2 bg-gray-50 rounded-lg";
+                div.innerHTML = `
+                    <input type="checkbox" ${sub.is_done ? 'checked' : ''}
+                        class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        onchange="apiToggleSubtask(${sub.id}, this.checked)">
+                    <span class="text-sm ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- Utils ---
+        function openCreateModal() {
+            document.getElementById('modal-create').classList.add('active');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            if(id === 'modal-detail') tg.BackButton.hide();
+        }
+
+        loadTasks();
     </script>
 </body>
 </html>
