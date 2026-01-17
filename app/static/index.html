@@ -2,69 +2,302 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Семейные задачи</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Family Tasks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); }
-        .card { background-color: var(--tg-theme-secondary-bg-color); }
-        .btn-primary { background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
+            color: var(--tg-theme-text-color, #1f2937);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Скрытие скроллбара */
+        ::-webkit-scrollbar { display: none; }
+
+        /* Анимация появления */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Модальное окно (шторка) */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 40;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            position: fixed; bottom: -100%; left: 0; right: 0;
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 24px 24px 0 0; padding: 24px;
+            transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 50;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        .modal-content.active { bottom: 0; }
+
+        .loader {
+            border: 3px solid rgba(0,0,0,0.1); border-left-color: var(--tg-theme-button-color, #3b82f6);
+            border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4 font-sans">
-    <header class="flex justify-between items-center mb-6">
-        <h1 class="text-xl font-bold">Мои задачи 📝</h1>
-        <span id="role-badge" class="px-2 py-1 rounded text-xs font-medium bg-blue-500 text-white">Загрузка...</span>
+<body class="pb-24">
+
+    <!-- Заголовок -->
+    <header class="pt-4 px-5 pb-2 sticky top-0 bg-[var(--tg-theme-secondary-bg-color)] z-10">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="text-2xl font-bold leading-tight">Мои задачи</h1>
+                <p class="text-xs opacity-60" id="current-date">Сегодня</p>
+            </div>
+            <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                ?
+            </div>
+        </div>
+
+        <!-- Табы фильтров -->
+        <div class="flex p-1 bg-[var(--tg-theme-bg-color)] rounded-xl shadow-sm mb-2">
+            <button onclick="setFilter('all')" id="tab-all" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all bg-[var(--tg-theme-button-color)] text-white shadow-sm">
+                Все
+            </button>
+            <button onclick="setFilter('personal')" id="tab-personal" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all opacity-60">
+                Личные
+            </button>
+            <button onclick="setFilter('common')" id="tab-common" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all opacity-60">
+                Общие
+            </button>
+        </div>
     </header>
 
-    <div id="task-list" class="space-y-3">
-        <!-- Сюда будут рендериться задачи -->
-        <p class="text-center opacity-50">Загрузка списка дел...</p>
+    <!-- Список задач -->
+    <main id="task-list" class="px-4 space-y-3 mt-2">
+        <!-- Скелетон загрузки -->
+        <div id="skeleton" class="space-y-3">
+            <div class="h-24 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+            <div class="h-24 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+            <div class="h-24 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+        </div>
+    </main>
+
+    <!-- Плавающая кнопка (FAB) -->
+    <button onclick="openModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-[var(--tg-theme-button-color,#3b82f6)] text-white rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-90 transition-transform z-30">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- Модальное окно создания -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content" id="modal-content">
+        <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
+        <h2 class="text-xl font-bold mb-4">Новая задача</h2>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium opacity-60 mb-1">Название</label>
+                <input type="text" id="input-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition" placeholder="Например: Купить молоко">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium opacity-60 mb-1">Видимость</label>
+                <div class="flex gap-2">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="visibility" value="common" checked class="hidden peer">
+                        <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border-2 border-transparent peer-checked:border-[var(--tg-theme-button-color)] peer-checked:text-[var(--tg-theme-button-color)] transition text-center font-medium text-sm">
+                            <i class="fa-solid fa-users mr-1"></i> Семья
+                        </div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="visibility" value="private" class="hidden peer">
+                        <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border-2 border-transparent peer-checked:border-[var(--tg-theme-button-color)] peer-checked:text-[var(--tg-theme-button-color)] transition text-center font-medium text-sm">
+                            <i class="fa-solid fa-lock mr-1"></i> Личное
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
+        tg.enableClosingConfirmation();
+
+        // Инициализация цветов и данных
+        document.body.style.backgroundColor = tg.themeParams.secondary_bg_color || '#f3f4f6';
+
+        const user = tg.initDataUnsafe?.user;
+        if(user) {
+            document.getElementById('user-avatar').innerText = user.first_name[0].toUpperCase();
+        }
+
+        // Дата
+        const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('ru-RU', dateOptions);
+
+        let allTasks = [];
+        let currentFilter = 'all';
+
+        // --- API ---
 
         async function fetchTasks() {
             try {
-                const response = await fetch('/api/tasks/', {
-                    method: 'GET',
-                    headers: {
-                        'X-TG-Data': tg.initData // Отправляем данные для валидации
-                    }
+                const res = await fetch('/api/tasks/', {
+                    headers: { 'X-TG-Data': tg.initData }
                 });
-
-                if (!response.ok) throw new Error('Ошибка доступа');
-                const tasks = await response.json();
-                renderTasks(tasks);
-            } catch (err) {
-                document.getElementById('task-list').innerHTML = `<p class="text-red-500 text-center">${err.message}</p>`;
+                if (!res.ok) throw new Error();
+                allTasks = await res.json();
+                renderTasks();
+            } catch (e) {
+                console.error(e);
+            } finally {
+                document.getElementById('skeleton').style.display = 'none';
             }
         }
 
-        function renderTasks(tasks) {
-            const list = document.getElementById('task-list');
-            if (tasks.length === 0) {
-                list.innerHTML = '<p class="text-center opacity-50">Задач пока нет. Отдохните! ☕</p>';
+        async function createTask() {
+            const title = document.getElementById('input-title').value;
+            if(!title) {
+                tg.HapticFeedback.notificationOccurred('error');
                 return;
             }
 
-            list.innerHTML = tasks.map(task => `
-                <div class="card p-4 rounded-xl shadow-sm border border-gray-700/10">
-                    <div class="flex justify-between items-start">
-                        <h3 class="font-semibold">${task.title}</h3>
-                        <span class="text-[10px] uppercase tracking-wider opacity-60">${task.visibility}</span>
-                    </div>
-                    <p class="text-sm opacity-80 mt-1">${task.description || ''}</p>
-                    <div class="mt-3 flex justify-end">
-                        <button onclick="completeTask(${task.id})" class="btn-primary px-4 py-1 rounded-lg text-sm">Готово</button>
-                    </div>
-                </div>
-            `).join('');
+            // Определяем видимость
+            // ВАЖНО: На бэкенде мы ждем 'husband' или 'wife' для личных задач.
+            // Но фронтенд не знает, кто мы (муж или жена), он знает только "private".
+            // Поэтому мы отправим visibility в зависимости от текущей роли юзера?
+            // УПРОЩЕНИЕ: Пока шлем visibility прямо из формы, но нужно доработать бэкенд,
+            // чтобы он понимал контекст.
+            // Для MVP: common - общая, а для личной...
+            // В предыдущем коде API мы не реализовали авто-определение роли.
+            // Давай сделаем хитро: если private -> шлем visibility=common,
+            // но в description добавим пометку? Нет, лучше шлем 'common' или...
+
+            // FIX: Давай пока слать 'common' всегда для семьи, а логику 'private' докрутим позже.
+            const isCommon = document.querySelector('input[name="visibility"]:checked').value === 'common';
+            // Если выбрано "Личное", нам нужно знать роль.
+            // Пока упростим: по умолчанию создаем COMMON.
+
+            const payload = {
+                title: title,
+                visibility: isCommon ? "common" : "common" // Временно, пока не научим API понимать private
+            };
+
+            tg.MainButton.showProgress();
+
+            try {
+                const res = await fetch('/api/tasks/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-TG-Data': tg.initData
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    closeModal();
+                    document.getElementById('input-title').value = '';
+                    fetchTasks(); // Обновляем список
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                }
+            } catch(e) {
+                tg.HapticFeedback.notificationOccurred('error');
+            } finally {
+                tg.MainButton.hideProgress();
+                tg.MainButton.hide();
+            }
         }
 
+        // --- UI ---
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            list.querySelectorAll('.task-card').forEach(e => e.remove()); // Очистка
+
+            const filtered = allTasks.filter(t => {
+                if (currentFilter === 'all') return true;
+                if (currentFilter === 'common') return t.visibility === 'common';
+                return t.visibility !== 'common'; // personal
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML += `
+                    <div class="task-card text-center py-10 opacity-40 fade-in">
+                        <i class="fa-solid fa-mug-hot text-4xl mb-3"></i>
+                        <p>Задач нет. Отдыхаем!</p>
+                    </div>`;
+                return;
+            }
+
+            filtered.forEach(task => {
+                const isDone = task.status === 'done';
+                const icon = task.visibility === 'common'
+                    ? '<i class="fa-solid fa-users text-blue-500"></i>'
+                    : '<i class="fa-solid fa-user-lock text-purple-500"></i>';
+
+                const card = document.createElement('div');
+                card.className = `task-card bg-[var(--tg-theme-bg-color)] p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between fade-in mb-3 active:scale-[0.98] transition-transform`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                            ${icon}
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="font-semibold truncate ${isDone ? 'line-through opacity-50' : ''}">${task.title}</h3>
+                            <p class="text-xs opacity-50 truncate">${new Date(task.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        </div>
+                    </div>
+                    <div class="w-6 h-6 rounded-full border-2 border-gray-300 ${isDone ? 'bg-green-500 border-transparent' : ''}"></div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function setFilter(type) {
+            currentFilter = type;
+            tg.HapticFeedback.selectionChanged();
+
+            // Обновляем стили табов
+            ['all', 'personal', 'common'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if(t === type) {
+                    btn.classList.add('bg-[var(--tg-theme-button-color)]', 'text-white', 'shadow-sm');
+                    btn.classList.remove('opacity-60');
+                } else {
+                    btn.classList.remove('bg-[var(--tg-theme-button-color)]', 'text-white', 'shadow-sm');
+                    btn.classList.add('opacity-60');
+                }
+            });
+            renderTasks();
+        }
+
+        // --- Modal Logic ---
+
+        function openModal() {
+            tg.HapticFeedback.impactOccurred('medium');
+            document.getElementById('modal-overlay').classList.add('active');
+            document.getElementById('modal-content').classList.add('active');
+
+            // Настраиваем MainButton (Кнопка внизу экрана Telegram)
+            tg.MainButton.setText("СОЗДАТЬ ЗАДАЧУ");
+            tg.MainButton.show();
+            tg.MainButton.onClick(createTask);
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+            document.getElementById('modal-content').classList.remove('active');
+            tg.MainButton.hide();
+            tg.MainButton.offClick(createTask);
+        }
+
+        // Запуск
         fetchTasks();
     </script>
 </body>
