@@ -198,77 +198,81 @@ function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // 1. ОЧИСТКА: Удаляем только ячейки с днями (не трогаем заголовки Пн, Вт...)
-    // Ищем элементы, у которых НЕТ класса 'calendar-day-name'
+    // Очистка
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
     oldCells.forEach(c => c.remove());
 
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
-
-    // Заголовок
     const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
     document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
 
-    // Расчет сетки
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0-Вс, 1-Пн
+    const firstDayIndex = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // Корректировка (Пн - первый день)
     const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-    // 2. Пустые ячейки (отступ в начале месяца)
     for (let i = 0; i < adjustedFirstDay; i++) {
         const div = document.createElement('div');
-        div.className = 'calendar-empty'; // Класс-маркер для очистки
+        div.className = 'calendar-empty';
         grid.appendChild(div);
     }
 
-    const today = new Date();
+    // Текущая дата (для сравнения)
+    const now = new Date();
+    // Обнуляем время у "сегодня", чтобы сравнивать только даты
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 3. Генерация дней
     for (let day = 1; day <= daysInMonth; day++) {
-        const currentDate = new Date(year, month, day);
-        // Строка YYYY-MM-DD для сравнения
+        const cellDate = new Date(year, month, day); // 00:00 локального времени
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
 
-        // А. Цифра дня (в span для верстки)
+        // Цифра
         const numSpan = document.createElement('span');
         numSpan.innerText = day;
         el.appendChild(numSpan);
 
-        // Б. Состояния (Сегодня / Выбрано)
-        // Сравниваем локальные даты (день, месяц, год)
-        const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-        if (isToday) {
-            el.classList.add('today');
-        }
-        if (state.selectedDateStr === dateStr) {
-            el.classList.add('selected');
-        }
+        // Проверка: Является ли эта ячейка "Сегодняшним днем"?
+        const isTodayCell = cellDate.getTime() === todayMidnight.getTime();
 
-        // В. Поиск задач для точек
-        const dayTasks = state.tasks.filter(t => checkTaskOnDate(t, currentDate));
+        if (isTodayCell) el.classList.add('today');
+        if (state.selectedDateStr === dateStr) el.classList.add('selected');
 
-        // Г. Рисуем точки
+        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+        const dayTasks = state.tasks.filter(t => {
+            // 1. Стандартная проверка (попадает ли задача на эту дату)
+            const matchesDate = checkTaskOnDate(t, cellDate);
+            if (matchesDate) return true;
+
+            // 2. СПЕЦИАЛЬНО ДЛЯ "СЕГОДНЯ": Показываем просроченные задачи
+            if (isTodayCell && t.status !== 'done' && t.deadline) {
+                let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
+                const tDate = new Date(dStr);
+                // Если дедлайн меньше "сейчас" -> это долг, рисуем точку на сегодня
+                if (tDate < now) return true;
+            }
+
+            return false;
+        });
+        // ---------------------------------
+
         if (dayTasks.length > 0) {
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'task-dots';
-
-            // Берем максимум 3 задачи, чтобы точки влезли в кружок
             dayTasks.slice(0, 3).forEach(t => {
                 const dot = document.createElement('div');
-                let dotClass = 'common'; // Синяя по умолчанию
+                let dotClass = 'common';
 
-                // Личная -> Серая
                 if (t.visibility !== 'common') dotClass = 'private';
 
-                // Просрочена -> Красная (только для невыполненных)
+                // Красим в красный, если просрочена
                 if (t.deadline) {
                     let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-                    if (new Date(dStr) < new Date() && t.status !== 'done') {
+                    // Если просрочена И не выполнена -> late
+                    if (new Date(dStr) < now && t.status !== 'done') {
                         dotClass = 'late';
                     }
                 }
@@ -279,11 +283,11 @@ function renderCalendar() {
             el.appendChild(dotsContainer);
         }
 
-        // Обработчик клика
         el.onclick = () => selectDate(dateStr);
         grid.appendChild(el);
     }
 }
+
 
 
 function selectDate(dateStr) {
