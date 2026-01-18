@@ -1,149 +1,149 @@
-/* === Reset & Base === */
-* {
-    -webkit-tap-highlight-color: transparent; /* Убираем синюю вспышку при клике на Android */
+/* === SYSTEM VARIABLES & RESET === */
+:root {
+    /* Fallbacks, если переменные не загрузились */
+    --tg-theme-bg-color: #fff;
+    --tg-theme-secondary-bg-color: #f3f4f6;
+    --tg-theme-text-color: #000;
+    --tg-theme-hint-color: #9ca3af;
+    --tg-theme-button-color: #3b82f6;
+    --tg-theme-button-text-color: #fff;
+    --tg-theme-link-color: #2481cc;
 }
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
-    color: var(--tg-theme-text-color, #000);
-    /* Учет безопасных зон iPhone X+ */
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     overflow-x: hidden;
+    transition: background-color 0.2s, color 0.2s; /* Плавная смена темы */
 }
 
-/* Скрываем скроллбар */
-::-webkit-scrollbar { display: none; }
+/* === UTILITY CLASSES (THEME AWARE) === */
+.bg-tg-main { background-color: var(--tg-theme-bg-color); }
+.bg-tg-secondary { background-color: var(--tg-theme-secondary-bg-color); }
+.text-tg-main { color: var(--tg-theme-text-color); }
+.text-tg-hint { color: var(--tg-theme-hint-color); }
+.text-tg-link { color: var(--tg-theme-link-color); }
+.bg-tg-button { background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
 
-/* === Form Elements Reset (iOS Fix) === */
-input:not([type="checkbox"]),
-textarea,
-select,
-button {
-    -webkit-appearance: none;
-    appearance: none;
-    outline: none;
-    font-family: inherit;
+/* === FORM ELEMENTS === */
+input, textarea, select, button {
+    -webkit-appearance: none; appearance: none; outline: none; font-family: inherit;
 }
 
-/* Фикс зума на iPhone при вводе текста */
-input, textarea, select {
+/* Инпуты адаптируются под фон */
+input[type="text"], input[type="datetime-local"], textarea, select {
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    border: 1px solid transparent; /* Можно сделать border: 1px solid var(--tg-theme-hint-color) с opacity */
     font-size: 16px !important;
 }
+input::placeholder, textarea::placeholder { color: var(--tg-theme-hint-color); opacity: 0.7; }
 
-/* === Components === */
-
-/* Custom Checkbox */
+/* Кастомный чекбокс (адаптивный) */
 .custom-checkbox {
-    -webkit-appearance: none;
-    appearance: none;
     width: 22px; height: 22px;
-    border: 2px solid var(--tg-theme-hint-color, #d1d5db);
-    border-radius: 6px;
-    display: grid; place-content: center;
-    transition: 0.2s; cursor: pointer;
-    background-color: transparent;
+    border: 2px solid var(--tg-theme-hint-color);
+    border-radius: 6px; display: grid; place-content: center;
+    transition: 0.2s; background-color: transparent;
 }
 .custom-checkbox::before {
-    content: "\f00c";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    font-size: 12px;
-    color: white;
-    transform: scale(0);
-    transition: 0.2s;
+    content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+    font-size: 12px; color: var(--tg-theme-button-text-color); transform: scale(0); transition: 0.2s;
 }
 .custom-checkbox:checked {
-    background-color: #22c55e;
-    border-color: #22c55e;
+    background-color: var(--tg-theme-button-color);
+    border-color: var(--tg-theme-button-color);
 }
 .custom-checkbox:checked::before { transform: scale(1); }
 
-/* Visibility Radio (Family/Personal) */
+/* Радио-кнопки видимости */
 .visibility-selector input:checked + div {
-    background-color: var(--tg-theme-button-color, #3b82f6);
-    color: var(--tg-theme-button-text-color, #fff);
-    border-color: transparent;
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+}
+.visibility-selector div {
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    border: 1px solid var(--tg-theme-bg-color); /* Небольшой контраст */
 }
 
-/* Date Input Icon Color Fix */
+/* Иконка календаря в инпуте (инверсия для темной темы) */
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.5);
-    opacity: 0.6;
+    filter: invert(1); /* Инвертируем всегда, а opacity регулирует вид */
+    opacity: 0.4;
+}
+@media (prefers-color-scheme: light) {
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0); }
 }
 
-/* === Calendar === */
+/* === CALENDAR === */
 .calendar-grid {
     display: grid !important;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(7, 1fr); gap: 4px;
     margin-bottom: 16px; margin-top: 10px;
 }
-
 .calendar-day-name {
     text-align: center; font-size: 10px; font-weight: 600;
-    opacity: 0.5; text-transform: uppercase;
+    color: var(--tg-theme-hint-color); text-transform: uppercase;
 }
-
 .calendar-day {
-    aspect-ratio: 1;
-    border-radius: 10px;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    padding-top: 4px; font-size: 12px; font-weight: 500;
-    background-color: var(--tg-theme-bg-color, #fff);
-    cursor: pointer;
+    aspect-ratio: 1; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; padding-top: 4px;
+    font-size: 12px; font-weight: 500;
+    background-color: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: transform 0.1s;
 }
-.calendar-day:active { transform: scale(0.95); }
-
 .calendar-day.today {
-    color: var(--tg-theme-button-color, #3b82f6);
-    font-weight: 800;
-    border: 1px solid var(--tg-theme-button-color, #3b82f6);
+    color: var(--tg-theme-button-color); font-weight: 800;
+    border: 1px solid var(--tg-theme-button-color);
 }
-
 .calendar-day.selected {
-    background-color: var(--tg-theme-button-color, #3b82f6);
-    color: var(--tg-theme-button-text-color, #fff);
-    border: none;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
 }
-
-.task-dots {
-    display: flex; gap: 2px; margin-top: 3px;
-    justify-content: center; flex-wrap: wrap; max-width: 80%;
-}
-
 .dot { width: 4px; height: 4px; border-radius: 50%; }
-.dot.common { background-color: #3b82f6; }
-.dot.private { background-color: #9ca3af; }
+.dot.common { background-color: var(--tg-theme-button-color); }
+.dot.private { background-color: var(--tg-theme-hint-color); }
 .dot.late { background-color: #ef4444; }
-.calendar-day.selected .dot { background-color: white !important; opacity: 0.8; }
+.calendar-day.selected .dot { background-color: var(--tg-theme-button-text-color) !important; opacity: 0.8; }
 
-/* === Modals (Bottom Sheet) === */
+/* === CARDS & MODALS === */
+.task-card {
+    background-color: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+}
+
+.bottom-sheet {
+    position: fixed; bottom: -100%; left: 0; right: 0;
+    background-color: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    border-radius: 24px 24px 0 0;
+    padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: 50; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+}
+.bottom-sheet.active { bottom: 0; }
+
 .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(2px);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
     opacity: 0; pointer-events: none; transition: 0.3s; z-index: 40;
 }
 .modal-overlay.active { opacity: 1; pointer-events: auto; }
 
-.bottom-sheet {
-    position: fixed; bottom: -100%; left: 0; right: 0;
-    background: var(--tg-theme-bg-color, #fff);
-    border-radius: 24px 24px 0 0;
-    padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
-    transition: bottom 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: 50; max-height: 90vh; overflow-y: auto;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+/* === TABS === */
+.tab-container { background-color: var(--tg-theme-bg-color); }
+.tab-btn { color: var(--tg-theme-text-color); opacity: 0.5; }
+.tab-btn.active {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    opacity: 1;
 }
-.bottom-sheet.active { bottom: 0; }
 
 /* === Animations === */
 .fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

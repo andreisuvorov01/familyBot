@@ -7,167 +7,15 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="/static/css/style.css" rel="stylesheet">
-    <style>
-       /* === Reset & Base === */
-* {
-    -webkit-tap-highlight-color: transparent; /* Убираем синюю вспышку при клике на Android */
-}
-
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
-    color: var(--tg-theme-text-color, #000);
-    /* Учет безопасных зон iPhone X+ */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    overflow-x: hidden;
-}
-
-/* Скрываем скроллбар */
-::-webkit-scrollbar { display: none; }
-
-/* === Form Elements Reset (iOS Fix) === */
-input:not([type="checkbox"]),
-textarea,
-select,
-button {
-    -webkit-appearance: none;
-    appearance: none;
-    outline: none;
-    font-family: inherit;
-}
-
-/* Фикс зума на iPhone при вводе текста */
-input, textarea, select {
-    font-size: 16px !important;
-}
-
-/* === Components === */
-
-/* Custom Checkbox */
-.custom-checkbox {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 22px; height: 22px;
-    border: 2px solid var(--tg-theme-hint-color, #d1d5db);
-    border-radius: 6px;
-    display: grid; place-content: center;
-    transition: 0.2s; cursor: pointer;
-    background-color: transparent;
-}
-.custom-checkbox::before {
-    content: "\f00c";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    font-size: 12px;
-    color: white;
-    transform: scale(0);
-    transition: 0.2s;
-}
-.custom-checkbox:checked {
-    background-color: #22c55e;
-    border-color: #22c55e;
-}
-.custom-checkbox:checked::before { transform: scale(1); }
-
-/* Visibility Radio (Family/Personal) */
-.visibility-selector input:checked + div {
-    background-color: var(--tg-theme-button-color, #3b82f6);
-    color: var(--tg-theme-button-text-color, #fff);
-    border-color: transparent;
-}
-
-/* Date Input Icon Color Fix */
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.5);
-    opacity: 0.6;
-}
-
-/* === Calendar === */
-.calendar-grid {
-    display: grid !important;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 16px; margin-top: 10px;
-}
-
-.calendar-day-name {
-    text-align: center; font-size: 10px; font-weight: 600;
-    opacity: 0.5; text-transform: uppercase;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    border-radius: 10px;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    padding-top: 4px; font-size: 12px; font-weight: 500;
-    background-color: var(--tg-theme-bg-color, #fff);
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: transform 0.1s;
-}
-.calendar-day:active { transform: scale(0.95); }
-
-.calendar-day.today {
-    color: var(--tg-theme-button-color, #3b82f6);
-    font-weight: 800;
-    border: 1px solid var(--tg-theme-button-color, #3b82f6);
-}
-
-.calendar-day.selected {
-    background-color: var(--tg-theme-button-color, #3b82f6);
-    color: var(--tg-theme-button-text-color, #fff);
-    border: none;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.task-dots {
-    display: flex; gap: 2px; margin-top: 3px;
-    justify-content: center; flex-wrap: wrap; max-width: 80%;
-}
-
-.dot { width: 4px; height: 4px; border-radius: 50%; }
-.dot.common { background-color: #3b82f6; }
-.dot.private { background-color: #9ca3af; }
-.dot.late { background-color: #ef4444; }
-.calendar-day.selected .dot { background-color: white !important; opacity: 0.8; }
-
-/* === Modals (Bottom Sheet) === */
-.modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(2px);
-    opacity: 0; pointer-events: none; transition: 0.3s; z-index: 40;
-}
-.modal-overlay.active { opacity: 1; pointer-events: auto; }
-
-.bottom-sheet {
-    position: fixed; bottom: -100%; left: 0; right: 0;
-    background: var(--tg-theme-bg-color, #fff);
-    border-radius: 24px 24px 0 0;
-    padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
-    transition: bottom 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: 50; max-height: 90vh; overflow-y: auto;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
-}
-.bottom-sheet.active { bottom: 0; }
-
-/* === Animations === */
-.fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-    </style>
+    <link href="/static/css/style.css?v=5" rel="stylesheet">
 </head>
-<body class="pb-24 px-4 pt-2 text-[var(--tg-theme-text-color)]">
+<body class="pb-24 px-4 pt-2">
 
     <!-- Header -->
-    <header class="flex justify-between items-center mb-2 sticky top-0 py-2 bg-[var(--tg-theme-secondary-bg-color)] z-20">
+    <header class="flex justify-between items-center mb-2 sticky top-0 py-2 bg-tg-secondary z-20">
         <div>
-            <h1 class="text-2xl font-bold">Задачи</h1>
-            <button onclick="toggleView()" id="view-toggle-btn" class="text-xs font-medium text-blue-500 bg-blue-100 px-2 py-1 rounded-md mt-1 active:scale-95 transition">
+            <h1 class="text-2xl font-bold text-tg-main">Задачи</h1>
+            <button onclick="toggleView()" id="view-toggle-btn" class="text-xs font-medium text-tg-link bg-tg-main px-3 py-1.5 rounded-md mt-1 active:scale-95 transition shadow-sm border border-transparent">
                 <i class="fa-regular fa-calendar"></i> Календарь
             </button>
         </div>
@@ -177,132 +25,102 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     </header>
 
     <!-- Tabs -->
-    <div class="flex bg-[var(--tg-theme-bg-color)] p-1 rounded-xl shadow-sm mb-4">
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition bg-[var(--tg-theme-button-color)] text-[var(--tg-theme-button-text-color)] shadow-md" data-filter="all">Все</button>
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60 hover:opacity-100" data-filter="personal">Личные</button>
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60 hover:opacity-100" data-filter="common">Общие</button>
+    <div class="flex bg-tg-main p-1 rounded-xl shadow-sm mb-4 tab-container">
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition active shadow-md" data-filter="all">Все</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition" data-filter="personal">Личные</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition" data-filter="common">Общие</button>
     </div>
-<div id="calendar-wrapper" class="hidden mb-6 fade-in">
-        <!-- Управление месяцем -->
+
+    <!-- Calendar Section -->
+    <div id="calendar-wrapper" class="hidden mb-6 fade-in">
         <div class="flex justify-between items-center mb-4 px-2">
-            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-[var(--tg-theme-bg-color)] shadow-sm"><i class="fa-solid fa-chevron-left text-xs"></i></button>
-            <h2 id="calendar-month-year" class="font-bold text-lg capitalize">Январь 2026</h2>
-            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-[var(--tg-theme-bg-color)] shadow-sm"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-tg-main text-tg-main shadow-sm flex items-center justify-center active:scale-90"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+            <h2 id="calendar-month-year" class="font-bold text-lg capitalize text-tg-main"></h2>
+            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-tg-main text-tg-main shadow-sm flex items-center justify-center active:scale-90"><i class="fa-solid fa-chevron-right text-xs"></i></button>
         </div>
-
-        <!-- Сетка -->
-        <div class="calendar-grid" id="calendar-grid">
-            <!-- Дни недели -->
-            <div class="calendar-day-name">Пн</div>
-            <div class="calendar-day-name">Вт</div>
-            <div class="calendar-day-name">Ср</div>
-            <div class="calendar-day-name">Чт</div>
-            <div class="calendar-day-name">Пт</div>
-            <div class="calendar-day-name text-red-400">Сб</div>
-            <div class="calendar-day-name text-red-400">Вс</div>
-            <!-- Дни сгенерируются JS -->
-        </div>
-
+        <div class="calendar-grid" id="calendar-grid"></div>
         <div class="flex justify-center mt-2">
-            <button onclick="resetCalendarFilter()" class="text-xs text-blue-500 font-medium" id="reset-filter-btn" style="display: none;">
-                Показать все задачи
-            </button>
+            <button onclick="resetCalendarFilter()" class="text-xs text-tg-link font-medium" id="reset-filter-btn" style="display: none;">Показать все</button>
         </div>
     </div>
+
     <!-- Task List -->
     <div id="task-list" class="space-y-3">
-        <!-- Skeleton Loading -->
-        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse opacity-50"></div>
-        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse opacity-50"></div>
+        <!-- Skeleton -->
+        <div class="h-16 bg-tg-main rounded-2xl animate-pulse opacity-30"></div>
+        <div class="h-16 bg-tg-main rounded-2xl animate-pulse opacity-30"></div>
     </div>
 
-    <!-- FAB (Floating Action Button) -->
-    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-[var(--tg-theme-button-color,#3b82f6)] text-[var(--tg-theme-button-text-color)] rounded-full shadow-lg grid place-content-center text-2xl active:scale-90 transition z-30">
+    <!-- FAB -->
+    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-tg-button rounded-full shadow-lg grid place-content-center text-2xl active:scale-90 transition z-30 text-[var(--tg-theme-button-text-color)]">
         <i class="fa-solid fa-plus"></i>
     </button>
 
     <!-- Overlay -->
     <div id="overlay" class="modal-overlay"></div>
 
-    <!-- Modal: Create/Edit Task -->
-    <div id="create-modal" class="bottom-sheet bg-[var(--tg-theme-bg-color)] text-[var(--tg-theme-text-color)]">
-        <div class="w-12 h-1 bg-[var(--tg-theme-hint-color)] rounded-full mx-auto mb-6 opacity-30"></div>
-        <h2 class="text-xl font-bold mb-4">Задача</h2>
+    <!-- Modal: Create/Edit -->
+    <div id="create-modal" class="bottom-sheet">
+        <div class="w-12 h-1 bg-tg-secondary rounded-full mx-auto mb-6 opacity-50"></div>
+        <h2 class="text-xl font-bold mb-4 text-tg-main">Задача</h2>
 
-        <!-- Поле Названия -->
-        <input type="text" id="new-title"
-            class="w-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] p-4 rounded-xl outline-none mb-3 focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition font-medium placeholder-opacity-70"
-            placeholder="Название задачи">
+        <input type="text" id="new-title" class="w-full p-4 rounded-xl mb-3 font-medium transition" placeholder="Название задачи">
+        <textarea id="new-desc" rows="3" class="w-full p-4 rounded-xl mb-4 transition resize-none text-sm" placeholder="Добавить описание..."></textarea>
 
-        <!-- Поле Описания (Теперь выглядит так же) -->
-        <textarea id="new-desc" rows="3"
-            class="w-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition resize-none text-sm placeholder-opacity-70"
-            placeholder="Добавить описание..."></textarea>
+        <label class="block text-xs font-bold text-tg-hint mb-1 ml-1 uppercase tracking-wide">Дедлайн</label>
+        <input type="datetime-local" id="new-deadline" class="w-full p-3 rounded-xl mb-4 text-sm font-medium">
 
-        <!-- Поле Даты -->
-        <label class="block text-xs font-bold opacity-50 mb-1 ml-1 uppercase tracking-wide">Дедлайн</label>
-        <input type="datetime-local" id="new-deadline"
-            class="w-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] p-3 rounded-xl outline-none mb-4 text-sm font-medium">
+        <label class="block text-xs font-bold text-tg-hint mb-1 ml-1 uppercase tracking-wide">Повтор</label>
+        <select id="new-repeat" class="w-full p-3 rounded-xl mb-4 text-sm font-medium">
+            <option value="">Без повтора</option>
+            <option value="daily">Каждый день</option>
+            <option value="weekly">Каждую неделю</option>
+            <option value="monthly">Раз в месяц</option>
+        </select>
 
-        <!-- Выбор видимости -->
         <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="common" checked class="hidden">
-                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
+                <div class="p-3 rounded-xl text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
                     <i class="fa-solid fa-users text-lg"></i> Семья
                 </div>
             </label>
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="private" class="hidden">
-                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
+                <div class="p-3 rounded-xl text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
                     <i class="fa-solid fa-lock text-lg"></i> Личное
                 </div>
             </label>
         </div>
     </div>
 
-    <!-- Modal: Task Detail -->
-    <div id="detail-modal" class="bottom-sheet bg-[var(--tg-theme-bg-color)] text-[var(--tg-theme-text-color)]">
+    <!-- Modal: Detail -->
+    <div id="detail-modal" class="bottom-sheet">
         <div class="flex justify-between items-start mb-5">
-            <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2 flex-1 break-words">Заголовок</h2>
-
-            <!-- Кнопки действий (Единый стиль) -->
+            <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2 flex-1 break-words text-tg-main"></h2>
             <div class="flex gap-2 shrink-0">
-                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-button-color)] flex items-center justify-center active:scale-90 transition shadow-sm">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-[var(--tg-theme-secondary-bg-color)] text-red-500 flex items-center justify-center active:scale-90 transition shadow-sm">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-tg-secondary text-tg-link flex items-center justify-center active:scale-90 transition"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-tg-secondary text-red-500 flex items-center justify-center active:scale-90 transition"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
 
-        <!-- Блок описания (Единый стиль с инпутами) -->
-        <div class="mb-5 bg-[var(--tg-theme-secondary-bg-color)] rounded-xl p-4 border border-transparent">
-            <p id="detail-desc" class="text-sm opacity-80 whitespace-pre-wrap leading-relaxed">Нет описания</p>
+        <div class="mb-5 bg-tg-secondary rounded-xl p-4">
+            <p id="detail-desc" class="text-sm text-tg-main whitespace-pre-wrap leading-relaxed opacity-80">Нет описания</p>
         </div>
 
-        <!-- Subtasks -->
         <div class="mb-6">
-            <h3 class="text-xs font-bold uppercase opacity-50 mb-3 tracking-wide">Чек-лист</h3>
+            <h3 class="text-xs font-bold text-tg-hint uppercase mb-3 tracking-wide">Чек-лист</h3>
             <div id="subtasks-list" class="space-y-2 mb-3"></div>
 
             <div class="flex gap-2">
-                <input type="text" id="new-subtask" placeholder="Добавить шаг..."
-                    class="flex-1 bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition">
-                <button onclick="addSubtask()" class="bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-button-color)] px-4 rounded-xl active:scale-90 transition">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+                <input type="text" id="new-subtask" placeholder="Добавить шаг..." class="flex-1 px-4 py-3 rounded-xl text-sm transition">
+                <button onclick="addSubtask()" class="bg-tg-secondary text-tg-link px-4 rounded-xl active:scale-90 transition"><i class="fa-solid fa-plus"></i></button>
             </div>
         </div>
 
-        <!-- Кнопка статуса -->
-        <button id="btn-status" class="w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2">
-            Завершить
-        </button>
+        <button id="btn-status" class="w-full py-3.5 rounded-xl font-bold shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2">Завершить</button>
     </div>
 
-    <!-- Scripts -->
     <script src="/static/js/api.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
