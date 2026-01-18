@@ -86,6 +86,7 @@ async def create_task(
         description=task_in.description,
         visibility=final_visibility,
         deadline=task_in.deadline,
+        repeat_rule=task_in.repeat_rule,  # <-- ДОБАВЛЕНО
         owner_id=user.id,
         family_id=user.family_id
     )
@@ -125,23 +126,55 @@ async def update_task(
 
     old_status = task.status
 
-    # --- ОБНОВЛЕНИЕ ПОЛЕЙ ---
-    if updates.status: task.status = updates.status
+    # Обновление полей
     if updates.title: task.title = updates.title
-    if updates.deadline: task.deadline = updates.deadline
     if updates.description: task.description = updates.description
     if updates.visibility:
-        # Такая же логика конвертации, как при создании
         if updates.visibility == "private":
             task.visibility = TaskVisibility.HUSBAND if user.role.value == "husband" else TaskVisibility.WIFE
         elif updates.visibility == "common":
             task.visibility = TaskVisibility.COMMON
 
+    # Обновление правила повтора (если прислали None - значит удаляем правило)
+    # Используем has_key или проверяем наличие в dict, чтобы отличить отсутствие поля от null
+    # Но в Pydantic v2 просто проверяем, было ли поле передано
+    if updates.repeat_rule is not None or (
+            updates.model_dump(exclude_unset=True).get('repeat_rule') is None and 'repeat_rule' in updates.model_dump(
+            exclude_unset=True)):
+        task.repeat_rule = updates.repeat_rule
+
+    # Логика дедлайна
+    if updates.deadline: task.deadline = updates.deadline
+
+    # ЛОГИКА ЗАВЕРШЕНИЯ ПОВТОРЯЮЩЕЙСЯ ЗАДАЧИ
+    if updates.status == "done" and task.repeat_rule:
+        task.status = "pending"  # Не закрываем, а оставляем активной
+        task.reminder_sent = False  # Сбрасываем напоминание
+
+        # Переносим дату
+        if task.deadline:
+            if task.repeat_rule == "daily":
+                task.deadline += timedelta(days=1)
+            elif task.repeat_rule == "weekly":
+                task.deadline += timedelta(weeks=1)
+            elif task.repeat_rule == "monthly":
+                task.deadline += timedelta(days=30)
+
+        # Сбрасываем подзадачи
+        for sub in task.subtasks:
+            sub.is_done = False
+
+    elif updates.status:
+        task.status = updates.status
+
     await session.commit()
 
-    # Уведомления (остаются как были)
-    if updates.status == "done" and old_status != "done" and task.visibility == TaskVisibility.COMMON:
-        text = f"✅ <b>Задача выполнена!</b>\n<s>{task.title}</s>"
+    # Уведомление
+    if updates.status == "done" and task.visibility == TaskVisibility.COMMON:
+        if task.repeat_rule:
+            text = f"🔄 <b>Задача выполнена и перенесена!</b>\n{task.title}"
+        else:
+            text = f"✅ <b>Задача выполнена!</b>\n<s>{task.title}</s>"
         await notify_partner(session, user, text)
 
     return {"ok": True}

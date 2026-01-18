@@ -22,6 +22,7 @@ class TaskRead(BaseModel):
     title: str
     description: str | None
     status: str
+    repeat_rule: str | None = None
     visibility: TaskVisibility
     deadline: datetime | None # <-- Новое поле
     created_at: datetime
@@ -35,9 +36,11 @@ class TaskCreate(BaseModel):
     description: str | None = None
     visibility: str = "common"
     deadline: datetime | None = None
+    repeat_rule: str | None = None
 
 class TaskUpdate(BaseModel):
     status: str | None = None
     title: str | None = None
     deadline: datetime | None = None
+    repeat_rule: str | None = None
     visibility: str | None = None

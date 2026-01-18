@@ -42,3 +42,4 @@ class Task(Base):
     subtasks: Mapped[list["Subtask"]] = relationship(
         "Subtask", backref="task", lazy="selectin", cascade="all, delete-orphan"
     )
+    repeat_rule: Mapped[str | None] = mapped_column(String(20), nullable=True)

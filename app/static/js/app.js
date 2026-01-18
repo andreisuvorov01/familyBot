@@ -1,20 +1,22 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
+// Глобальное состояние
 let state = {
     tasks: [],
-    filter: 'all',
+    filter: 'all', // all | common | personal
     currentTask: null,
-    view: 'list',
+    view: 'list', // list | calendar
     calendarDate: new Date(),
     selectedDateStr: null
 };
 
+// --- Инициализация ---
 async function init() {
     setupTheme();
     setupEventListeners();
     await loadTasks();
-    setInterval(loadTasks, 15000);
+    setInterval(loadTasks, 15000); // Авто-обновление
 }
 
 function setupTheme() {
@@ -34,14 +36,14 @@ function setupTheme() {
 async function loadTasks() {
     try {
         state.tasks = await api.getTasks();
-        // Обновляем список И календарь (чтобы точки появились)
         renderList();
         if (state.view === 'calendar') renderCalendar();
     } catch (e) {
-        console.error(e);
+        console.error("Ошибка загрузки:", e);
     }
 }
 
+// --- Переключение Видов ---
 function toggleView() {
     state.view = state.view === 'list' ? 'calendar' : 'list';
     const wrapper = document.getElementById('calendar-wrapper');
@@ -58,18 +60,19 @@ function toggleView() {
     }
 }
 
+// --- Рендеринг Списка ---
 function renderList() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
 
-    // 1. Фильтр по Табам
+    // 1. Фильтр по типу (Табы)
     let filtered = state.tasks.filter(t => {
         if (state.filter === 'all') return true;
         if (state.filter === 'common') return t.visibility === 'common';
         return t.visibility !== 'common';
     });
 
-    // 2. Фильтр по Дате
+    // 2. Фильтр по дате (Календарь)
     if (state.selectedDateStr) {
         filtered = filtered.filter(t => {
             if (!t.deadline) return false;
@@ -80,6 +83,7 @@ function renderList() {
         });
     }
 
+    // Пустой список
     if (filtered.length === 0) {
         list.innerHTML = `<div class="text-center pt-20 opacity-40"><p>Нет задач</p></div>`;
         return;
@@ -89,6 +93,7 @@ function renderList() {
         const isDone = task.status === 'done';
         const isCommon = task.visibility === 'common';
 
+        // Бейдж времени
         let timeBadge = '';
         if (task.deadline) {
             let dateStr = task.deadline;
@@ -96,15 +101,16 @@ function renderList() {
             const d = new Date(dateStr);
             const now = new Date();
             const isLate = now > d && !isDone;
-            const timeStr = d.toLocaleDateString('ru-RU', {
-                day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'
-            });
-            const colorClass = isLate ? 'text-red-500 font-bold bg-red-50' : 'text-gray-500 bg-gray-100';
-            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
+
+            const timeStr = d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'});
+            const colorClass = isLate ? 'text-red-500 font-bold bg-red-50' : 'text-tg-hint bg-tg-secondary';
+            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2 flex items-center gap-1"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
         }
 
-       const el = document.createElement('div');
-        // Используем bg-tg-main вместо bg-[var(...)]
+        // Иконка повтора
+        const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate text-xs opacity-50 ml-2 text-tg-link"></i>' : '';
+
+        const el = document.createElement('div');
         el.className = `task-card bg-tg-main p-4 rounded-2xl mb-3 shadow-sm flex items-center gap-3 active:scale-[0.98] transition fade-in border-l-4 ${isCommon ? 'border-l-blue-400' : 'border-l-transparent'} ${isDone ? 'opacity-50 grayscale' : ''}`;
 
         el.innerHTML = `
@@ -115,23 +121,21 @@ function renderList() {
             <div class="flex-1 min-w-0">
                 <div class="flex items-center mb-1">
                     ${timeBadge}
-                    <h3 class="font-medium truncate text-sm text-tg-main ${isDone ? 'line-through' : ''}">${task.title}</h3>
+                    <h3 class="font-medium truncate text-sm text-tg-main ${isDone ? 'line-through' : ''}">${task.title} ${repeatIcon}</h3>
                 </div>
-
-                <div class="flex items-center gap-3 text-[10px] text-tg-hint">
-                    ${isCommon ? '<span class="flex items-center gap-1"><i class="fa-solid fa-users"></i> Семья</span>' : '<span class="flex items-center gap-1"><i class="fa-solid fa-lock"></i> Личное</span>'}
-                    ${task.repeat_rule ? '<span class="flex items-center gap-1"><i class="fa-solid fa-rotate"></i></span>' : ''}
+                <div class="flex items-center gap-3 text-[10px] text-tg-hint opacity-80">
+                    ${isCommon ? '<span><i class="fa-solid fa-users"></i> Семья</span>' : '<span><i class="fa-solid fa-lock"></i> Личное</span>'}
                     ${task.subtasks.length > 0 ? `<span>• ${task.subtasks.filter(s => s.is_done).length}/${task.subtasks.length}</span>` : ''}
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-tg-hint opacity-30 text-xs"></i>
+            <i class="fa-solid fa-chevron-right text-tg-hint opacity-20 text-xs"></i>
         `;
         el.onclick = () => openDetail(task);
         list.appendChild(el);
     });
 }
 
-// --- Calendar Logic ---
+// --- Календарь ---
 
 function changeMonth(delta) {
     state.calendarDate.setMonth(state.calendarDate.getMonth() + delta);
@@ -142,53 +146,46 @@ function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // 1. ОЧИСТКА: Удаляем все элементы, которые НЕ являются заголовками дней
-    // (У заголовков класс calendar-day-name, у ячеек - calendar-day или пустой div)
+    // ОЧИСТКА: Удаляем все, кроме заголовков дней
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
-    oldCells.forEach(cell => cell.remove());
+    oldCells.forEach(c => c.remove());
 
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
-
-    // Заголовок
     const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
     document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
 
-    // Расчет дней
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0-Вс, 1-Пн
+    const firstDayIndex = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // Пн=0 ... Вс=6
     const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-    // 2. Пустые ячейки (отступ)
+    // Пустые ячейки
     for (let i = 0; i < adjustedFirstDay; i++) {
         const div = document.createElement('div');
-        // Добавляем класс, чтобы потом его можно было удалить при очистке
         div.className = 'calendar-empty';
         grid.appendChild(div);
     }
 
-    // 3. Дни
     const today = new Date();
 
     for (let day = 1; day <= daysInMonth; day++) {
-        // ... (код создания дня без изменений) ...
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.innerText = day;
 
-        // ... стили Today / Selected ...
+        // Today
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             el.classList.add('today');
         }
+        // Selected
         if (state.selectedDateStr === dateStr) {
             el.classList.add('selected');
         }
 
-        // ... Точки ...
+        // Dots
         const dayTasks = state.tasks.filter(t => {
             if (!t.deadline) return false;
             let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
@@ -204,9 +201,7 @@ function renderCalendar() {
             dayTasks.slice(0, 4).forEach(t => {
                 const dot = document.createElement('div');
                 dot.className = `dot ${t.status === 'done' ? 'bg-gray-300' : (t.visibility === 'common' ? 'common' : 'private')}`;
-                if (new Date() > new Date(t.deadline) && t.status !== 'done') {
-                    dot.className = 'dot late';
-                }
+                if (new Date() > new Date(t.deadline) && t.status !== 'done') dot.className = 'dot late';
                 dotsContainer.appendChild(dot);
             });
             el.appendChild(dotsContainer);
@@ -217,34 +212,29 @@ function renderCalendar() {
     }
 }
 
-
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
     state.selectedDateStr = dateStr;
-    const resetBtn = document.getElementById('reset-filter-btn');
-    if(resetBtn) resetBtn.style.display = 'block';
-
+    document.getElementById('reset-filter-btn').style.display = 'block';
     renderCalendar();
     renderList();
 }
 
 function resetCalendarFilter() {
     state.selectedDateStr = null;
-    const resetBtn = document.getElementById('reset-filter-btn');
-    if(resetBtn) resetBtn.style.display = 'none';
-
+    document.getElementById('reset-filter-btn').style.display = 'none';
     renderCalendar();
     renderList();
 }
 
-// --- Detail & Edit ---
+// --- Модалки (Create / Edit / Detail) ---
 
 function openDetail(task) {
     state.currentTask = task;
     const isDone = task.status === 'done';
 
     document.getElementById('detail-title').innerText = task.title;
-    document.getElementById('detail-title').className = `text-xl font-bold leading-tight mr-2 flex-1 ${isDone ? 'line-through opacity-50' : ''}`;
+    document.getElementById('detail-title').className = `text-xl font-bold leading-tight mr-2 flex-1 text-tg-main ${isDone ? 'line-through opacity-50' : ''}`;
 
     const descEl = document.getElementById('detail-desc');
     if (descEl) {
@@ -259,11 +249,11 @@ function openDetail(task) {
 
     const btn = document.getElementById('btn-status');
     if (isDone) {
-        btn.innerHTML = 'Вернуть в работу';
-        btn.className = 'w-full py-3 rounded-xl font-semibold bg-gray-100 text-gray-800 transition';
+        btn.innerHTML = '<i class="fa-solid fa-rotate-left mr-2"></i> Вернуть';
+        btn.className = 'w-full py-3 rounded-xl font-semibold bg-tg-secondary text-tg-main shadow-sm active:scale-95 transition';
     } else {
-        btn.innerHTML = 'Завершить';
-        btn.className = 'w-full py-3 rounded-xl font-semibold bg-green-500 text-white transition';
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Завершить';
+        btn.className = 'w-full py-3 rounded-xl font-semibold bg-green-500 text-white shadow-lg active:scale-95 transition';
     }
     btn.onclick = () => toggleTaskStatus(task);
 
@@ -276,9 +266,11 @@ function openDetail(task) {
 
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('light');
+    // Сброс полей
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
     document.getElementById('new-deadline').value = '';
+    document.getElementById('new-repeat').value = ''; // Сброс повтора
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
@@ -291,18 +283,21 @@ function openCreateModal() {
 
 function openEditMode() {
     const task = state.currentTask;
-    closeModals();
+    closeModals(); // Закрываем детальный
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 
+    // Заполнение
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
+    document.getElementById('new-repeat').value = task.repeat_rule || ''; // Заполняем повтор
 
     if(task.deadline) {
         let dateStr = task.deadline;
         if (!dateStr.endsWith('Z')) dateStr += 'Z';
         const d = new Date(dateStr);
+        // Local ISO trick
         const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
         document.getElementById('new-deadline').value = localIso;
     } else {
@@ -318,20 +313,28 @@ function openEditMode() {
     tg.MainButton.onClick(submitUpdate);
 }
 
+// --- Submit Logic ---
+
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
+    const repeat = document.getElementById('new-repeat').value || null;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
     const dateVal = document.getElementById('new-deadline').value;
 
-    if(!title.trim()) return;
+    if(!title.trim()) {
+        tg.HapticFeedback.notificationOccurred('error');
+        return;
+    }
 
     let deadline = null;
     if (dateVal) deadline = new Date(dateVal).toISOString();
 
     tg.MainButton.showProgress();
     try {
-        await api.createTask({ title, description: desc, visibility, deadline });
+        await api.createTask({
+            title, description: desc, visibility, deadline, repeat_rule: repeat
+        });
         tg.HapticFeedback.notificationOccurred('success');
         closeModals();
         loadTasks();
@@ -345,6 +348,7 @@ async function submitCreate() {
 async function submitUpdate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
+    const repeat = document.getElementById('new-repeat').value || null;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
     const dateVal = document.getElementById('new-deadline').value;
 
@@ -352,13 +356,16 @@ async function submitUpdate() {
     if (dateVal) deadline = new Date(dateVal).toISOString();
 
     tg.MainButton.showProgress();
-    await api.updateTask(state.currentTask.id, { title, description: desc, visibility, deadline });
+    await api.updateTask(state.currentTask.id, {
+        title, description: desc, visibility, deadline, repeat_rule: repeat
+    });
     tg.HapticFeedback.notificationOccurred('success');
     closeModals();
-    tg.MainButton.offClick(submitUpdate);
     loadTasks();
     tg.MainButton.hideProgress();
 }
+
+// --- Actions ---
 
 async function toggleTaskStatus(task) {
     const newStatus = task.status === 'done' ? 'pending' : 'done';
@@ -368,15 +375,36 @@ async function toggleTaskStatus(task) {
     loadTasks();
 }
 
+async function addSubtask() {
+    const input = document.getElementById('new-subtask');
+    if(!input.value.trim()) return;
+    try {
+        const sub = await api.addSubtask(state.currentTask.id, input.value);
+        state.currentTask.subtasks.push(sub);
+        input.value = '';
+        renderSubtasks(state.currentTask.subtasks);
+    } catch(e) {}
+}
+
+async function deleteTask() {
+    tg.showConfirm("Удалить задачу?", async (ok) => {
+        if(ok) {
+            closeModals();
+            await api.deleteTask(state.currentTask.id);
+            loadTasks();
+        }
+    });
+}
+
 function renderSubtasks(subtasks) {
     const list = document.getElementById('subtasks-list');
     list.innerHTML = '';
     subtasks.forEach(sub => {
         const el = document.createElement('div');
-        el.className = 'flex items-center gap-3 py-2';
+        el.className = 'flex items-center gap-3 py-2 border-b border-tg-hint/10 last:border-0';
         el.innerHTML = `
-            <input type="checkbox" class="custom-checkbox w-5 h-5 rounded border-gray-300" ${sub.is_done ? 'checked' : ''}>
-            <span class="text-sm flex-1 ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
+            <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''}>
+            <span class="text-sm flex-1 text-tg-main ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
         `;
         el.querySelector('input').onchange = (e) => {
             api.toggleSubtask(sub.id, e.target.checked);
@@ -387,47 +415,21 @@ function renderSubtasks(subtasks) {
     });
 }
 
-async function addSubtask() {
-    const input = document.getElementById('new-subtask');
-    if(!input.value) return;
-    try {
-        const sub = await api.addSubtask(state.currentTask.id, input.value);
-        state.currentTask.subtasks.push(sub);
-        input.value = '';
-        renderSubtasks(state.currentTask.subtasks);
-    } catch(e) {}
-}
-
-async function deleteTask() {
-    tg.showConfirm("Удалить?", async (ok) => {
-        if(ok) {
-            closeModals();
-            await api.deleteTask(state.currentTask.id);
-            loadTasks();
-        }
-    });
-}
+// --- UI Utils ---
 
 function setFilter(type) {
     state.filter = type;
     tg.HapticFeedback.selectionChanged();
 
-    // Находим все кнопки
-    const buttons = document.querySelectorAll('.tab-btn');
-
-    buttons.forEach(btn => {
-        // Проверяем dataset
+    document.querySelectorAll('.tab-btn').forEach(btn => {
         if(btn.dataset.filter === type) {
-            // АКТИВНАЯ КНОПКА
             btn.classList.add('active', 'bg-tg-button', 'text-white', 'shadow-md');
             btn.classList.remove('opacity-60');
         } else {
-            // НЕАКТИВНАЯ КНОПКА
             btn.classList.remove('active', 'bg-tg-button', 'text-white', 'shadow-md');
             btn.classList.add('opacity-60');
         }
     });
-
     renderList();
 }
 
@@ -447,5 +449,5 @@ function setupEventListeners() {
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
 }
 
-// Поехали!
+// Start
 init();
