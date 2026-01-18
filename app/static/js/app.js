@@ -234,24 +234,35 @@ function renderCalendar() {
             el.classList.add('selected');
         }
 
-        const dayTasks = state.tasks.filter(t => checkTaskOnDate(t, currentDate));
+        const dayTasks = state.tasks.filter(t => {
+            // Если задача сделана - проверяем просто совпадение дат
+            if (t.status === 'done') {
+                return checkTaskOnDate(t, currentDate);
+            }
 
-        if (dayTasks.length > 0) {
-            const dotsContainer = document.createElement('div');
-            dotsContainer.className = 'task-dots';
-            dayTasks.slice(0, 4).forEach(t => {
-                const dot = document.createElement('div');
-                dot.className = `dot ${t.status === 'done' ? 'bg-gray-300' : (t.visibility === 'common' ? 'common' : 'private')}`;
-                if (new Date() > new Date(t.deadline) && t.status !== 'done') dot.className = 'dot late';
-                dotsContainer.appendChild(dot);
-            });
-            el.appendChild(dotsContainer);
-        }
+            // Если задача АКТИВНА:
+            // 1. Если рисуем СЕГОДНЯШНИЙ день -> показываем задачи на сегодня + просроченные
+            // 2. Если рисуем ДРУГОЙ день -> показываем только задачи на этот день
 
-        el.onclick = () => selectDate(dateStr);
-        grid.appendChild(el);
-    }
-}
+            const isTodayCell = (
+                currentDate.getDate() === today.getDate() &&
+                currentDate.getMonth() === today.getMonth() &&
+                currentDate.getFullYear() === today.getFullYear()
+            );
+
+            if (isTodayCell) {
+                // Показываем, если дедлайн сегодня ИЛИ раньше (долг)
+                // Но helper checkTaskOnDate проверяет строгое совпадение для повторов.
+                // Упростим: для календаря просто берем дедлайн.
+                if (!t.deadline) return false;
+                let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
+                let tDate = new Date(dStr);
+                return tDate <= new Date(); // Дедлайн меньше или равен "сейчас"
+            } else {
+                // Обычная проверка на конкретную дату
+                return checkTaskOnDate(t, currentDate);
+            }
+        });
 
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();

@@ -67,12 +67,12 @@ body.is-android {
 
 /* === 5. LAYOUT & SCROLL === */
 .app-container {
-    height: 100%;
-    overflow-y: auto;
+    height: 100%; /* Занимает весь экран */
+    overflow-y: scroll; /* Принудительный скролл */
     -webkit-overflow-scrolling: touch;
-    padding: 0 16px;
-    padding-top: calc(12px + var(--safe-top));
-    padding-bottom: calc(100px + var(--safe-bottom));
+    padding-bottom: 120px; /* Большой отступ снизу, чтобы контент не перекрывался кнопкой */
+    position: relative;
+    z-index: 1;
 }
 .app-container::-webkit-scrollbar { display: none; }
 
