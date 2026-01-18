@@ -1,4 +1,49 @@
 /* --- Основные настройки --- */
+input, textarea, select, button {
+    -webkit-appearance: none; /* Убирает "стеклянный" эффект */
+    appearance: none;
+    border-radius: 0; /* Сбрасывает нативные скругления */
+}
+
+/* Возвращаем скругления для наших классов */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* 2. Блокируем "резиновый" скролл всей страницы */
+body {
+    overscroll-behavior-y: none; /* Чтобы страница не "прыгала" при прокрутке */
+    /* Учет "челки" и "подбородка" iPhone */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 3. Фикс зума (увеличиваем шрифт в инпутах, если он мелкий) */
+input[type="text"],
+input[type="datetime-local"],
+textarea,
+select {
+    font-size: 16px !important; /* iOS не зумит, если шрифт >= 16px */
+}
+
+/* 4. Убираем серую подсветку при клике */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 5. Фикс для модалки на iPhone (чтобы не уезжала под полоску) */
+.bottom-sheet {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+
+/* 6. Кастомная стрелочка для Select (iOS убирает её при appearance: none) */
+select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem; /* Место под стрелку */
+}
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
