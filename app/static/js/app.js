@@ -329,22 +329,21 @@ function openCreateModal() {
 
 function openEditMode() {
     const task = state.currentTask;
-    closeModals(); // Закрываем детальный просмотр
+    closeModals();
 
-    // Открываем модалку создания (она же редактирование)
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 
-    // 1. Заполняем текстовые поля
+    // 1. Текстовые поля
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
 
-    // 2. Заполняем видимость
+    // 2. Видимость
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
-    // 3. Заполняем ПОВТОР (Custom UI)
-    state.tempRepeat = task.repeat_rule; // Сохраняем в state
+    // 3. Повтор (Custom UI)
+    state.tempRepeat = task.repeat_rule;
     const repeatMap = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
     const repeatText = repeatMap[task.repeat_rule] || 'Нет';
 
@@ -353,35 +352,29 @@ function openEditMode() {
     if (task.repeat_rule) repeatEl.classList.remove('placeholder');
     else repeatEl.classList.add('placeholder');
 
-    // 4. Заполняем ДАТУ (Custom UI)
+    // 4. Дата (Custom UI)
     if(task.deadline) {
         let dStr = task.deadline;
         if (!dStr.endsWith('Z')) dStr += 'Z';
         const d = new Date(dStr);
+        state.tempDate = d;
 
-        state.tempDate = d; // Сохраняем объект даты в state
-
-        // Форматируем для UI: "18 января, 15:00"
         const dateText = d.toLocaleDateString('ru-RU', {
             day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit'
         });
-
         const dateEl = document.getElementById('val-date');
         dateEl.innerText = dateText;
         dateEl.classList.remove('placeholder');
 
-        // Также обновляем time-picker внутри sheet-date, чтобы там было правильное время
         const hours = String(d.getHours()).padStart(2, '0');
         const minutes = String(d.getMinutes()).padStart(2, '0');
         document.getElementById('time-picker').value = `${hours}:${minutes}`;
-
     } else {
         state.tempDate = null;
         document.getElementById('val-date').innerText = 'Нет';
         document.getElementById('val-date').classList.add('placeholder');
     }
 
-    // Настраиваем кнопку
     tg.MainButton.setText("СОХРАНИТЬ");
     tg.MainButton.show();
     tg.MainButton.offClick(submitCreate);
