@@ -8,8 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
+    <style>
+        /* Дополнительная настройка для плейсхолдеров, чтобы они были видны в любой теме */
+        ::placeholder { color: var(--tg-theme-hint-color, #9ca3af); }
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5); /* Чтобы иконка календаря была нейтральной */
+        }
+    </style>
 </head>
-<body class="pb-24 px-4 pt-2">
+<body class="pb-24 px-4 pt-2 text-[var(--tg-theme-text-color)]">
 
     <!-- Header -->
     <header class="flex justify-between items-center mb-4 sticky top-0 py-2 bg-[var(--tg-theme-secondary-bg-color)] z-20">
@@ -17,27 +24,27 @@
             <h1 class="text-2xl font-bold">Задачи</h1>
             <p class="text-xs opacity-60">Семейный планировщик</p>
         </div>
-        <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg overflow-hidden">
+        <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border-2 border-[var(--tg-theme-bg-color)]">
             <span id="avatar-letter">?</span>
         </div>
     </header>
 
     <!-- Tabs -->
     <div class="flex bg-[var(--tg-theme-bg-color)] p-1 rounded-xl shadow-sm mb-4">
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition bg-[var(--tg-theme-button-color)] text-white shadow-md" data-filter="all">Все</button>
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60" data-filter="personal">Личные</button>
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60" data-filter="common">Общие</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition bg-[var(--tg-theme-button-color)] text-[var(--tg-theme-button-text-color)] shadow-md" data-filter="all">Все</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60 hover:opacity-100" data-filter="personal">Личные</button>
+        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60 hover:opacity-100" data-filter="common">Общие</button>
     </div>
 
     <!-- Task List -->
     <div id="task-list" class="space-y-3">
         <!-- Skeleton Loading -->
-        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
-        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
+        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse opacity-50"></div>
+        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse opacity-50"></div>
     </div>
 
     <!-- FAB (Floating Action Button) -->
-    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-[var(--tg-theme-button-color,#3b82f6)] text-white rounded-full shadow-lg grid place-content-center text-2xl active:scale-90 transition z-30">
+    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-[var(--tg-theme-button-color,#3b82f6)] text-[var(--tg-theme-button-text-color)] rounded-full shadow-lg grid place-content-center text-2xl active:scale-90 transition z-30">
         <i class="fa-solid fa-plus"></i>
     </button>
 
@@ -45,28 +52,36 @@
     <div id="overlay" class="modal-overlay"></div>
 
     <!-- Modal: Create/Edit Task -->
-    <div id="create-modal" class="bottom-sheet">
-        <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
+    <div id="create-modal" class="bottom-sheet bg-[var(--tg-theme-bg-color)] text-[var(--tg-theme-text-color)]">
+        <div class="w-12 h-1 bg-[var(--tg-theme-hint-color)] rounded-full mx-auto mb-6 opacity-30"></div>
         <h2 class="text-xl font-bold mb-4">Задача</h2>
 
-        <input type="text" id="new-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-3 focus:ring-2 focus:ring-blue-500 transition font-medium" placeholder="Название задачи">
+        <!-- Поле Названия -->
+        <input type="text" id="new-title"
+            class="w-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] p-4 rounded-xl outline-none mb-3 focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition font-medium placeholder-opacity-70"
+            placeholder="Название задачи">
 
-        <!-- Поле Описания -->
-        <textarea id="new-desc" rows="3" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-blue-500 transition resize-none text-sm" placeholder="Добавить описание..."></textarea>
+        <!-- Поле Описания (Теперь выглядит так же) -->
+        <textarea id="new-desc" rows="3"
+            class="w-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition resize-none text-sm placeholder-opacity-70"
+            placeholder="Добавить описание..."></textarea>
 
-        <label class="block text-xs font-bold opacity-50 mb-1 ml-1">Дедлайн (необязательно)</label>
-        <input type="datetime-local" id="new-deadline" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-3 rounded-xl outline-none mb-4 text-sm text-gray-600">
+        <!-- Поле Даты -->
+        <label class="block text-xs font-bold opacity-50 mb-1 ml-1 uppercase tracking-wide">Дедлайн</label>
+        <input type="datetime-local" id="new-deadline"
+            class="w-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] p-3 rounded-xl outline-none mb-4 text-sm font-medium">
 
+        <!-- Выбор видимости -->
         <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="common" checked class="hidden">
-                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1">
+                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
                     <i class="fa-solid fa-users text-lg"></i> Семья
                 </div>
             </label>
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="private" class="hidden">
-                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1">
+                <div class="p-3 rounded-xl bg-[var(--tg-theme-secondary-bg-color)] border border-transparent text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
                     <i class="fa-solid fa-lock text-lg"></i> Личное
                 </div>
             </label>
@@ -74,32 +89,42 @@
     </div>
 
     <!-- Modal: Task Detail -->
-    <div id="detail-modal" class="bottom-sheet">
-        <div class="flex justify-between items-start mb-4">
+    <div id="detail-modal" class="bottom-sheet bg-[var(--tg-theme-bg-color)] text-[var(--tg-theme-text-color)]">
+        <div class="flex justify-between items-start mb-5">
             <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2 flex-1 break-words">Заголовок</h2>
+
+            <!-- Кнопки действий (Единый стиль) -->
             <div class="flex gap-2 shrink-0">
-                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-gray-100 text-blue-600 flex items-center justify-center active:bg-gray-200 transition"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-gray-100 text-red-500 flex items-center justify-center active:bg-gray-200 transition"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-button-color)] flex items-center justify-center active:scale-90 transition shadow-sm">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-[var(--tg-theme-secondary-bg-color)] text-red-500 flex items-center justify-center active:scale-90 transition shadow-sm">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Блок описания (Важно для JS) -->
-        <div class="mb-5 bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <p id="detail-desc" class="text-sm text-gray-600 whitespace-pre-wrap">Нет описания</p>
+        <!-- Блок описания (Единый стиль с инпутами) -->
+        <div class="mb-5 bg-[var(--tg-theme-secondary-bg-color)] rounded-xl p-4 border border-transparent">
+            <p id="detail-desc" class="text-sm opacity-80 whitespace-pre-wrap leading-relaxed">Нет описания</p>
         </div>
 
         <!-- Subtasks -->
         <div class="mb-6">
-            <h3 class="text-xs font-bold uppercase opacity-50 mb-2">Чек-лист</h3>
-            <div id="subtasks-list" class="space-y-1 mb-3"></div>
+            <h3 class="text-xs font-bold uppercase opacity-50 mb-3 tracking-wide">Чек-лист</h3>
+            <div id="subtasks-list" class="space-y-2 mb-3"></div>
 
             <div class="flex gap-2">
-                <input type="text" id="new-subtask" placeholder="Добавить шаг..." class="flex-1 bg-[var(--tg-theme-secondary-bg-color)] px-3 py-2 rounded-lg text-sm outline-none">
-                <button onclick="addSubtask()" class="bg-[var(--tg-theme-secondary-bg-color)] px-3 rounded-lg"><i class="fa-solid fa-plus"></i></button>
+                <input type="text" id="new-subtask" placeholder="Добавить шаг..."
+                    class="flex-1 bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--tg-theme-button-color)] transition">
+                <button onclick="addSubtask()" class="bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-button-color)] px-4 rounded-xl active:scale-90 transition">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
             </div>
         </div>
 
-        <button id="btn-status" class="w-full py-3 rounded-xl font-semibold bg-green-500 text-white">
+        <!-- Кнопка статуса -->
+        <button id="btn-status" class="w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2">
             Завершить
         </button>
     </div>
