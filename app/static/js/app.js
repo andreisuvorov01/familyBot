@@ -4,9 +4,9 @@ tg.expand();
 // Глобальное состояние
 let state = {
     tasks: [],
-    filter: 'all', // all | common | personal
+    filter: 'all',
     currentTask: null,
-    view: 'list', // list | calendar
+    view: 'list',
     calendarDate: new Date(),
     selectedDateStr: null
 };
@@ -16,7 +16,7 @@ async function init() {
     setupTheme();
     setupEventListeners();
     await loadTasks();
-    setInterval(loadTasks, 15000); // Авто-обновление
+    setInterval(loadTasks, 15000);
 }
 
 function setupTheme() {
@@ -41,6 +41,43 @@ async function loadTasks() {
     } catch (e) {
         console.error("Ошибка загрузки:", e);
     }
+}
+
+// === ЛОГИКА ПОВТОРЕНИЙ (ГЛАВНАЯ МАГИЯ) ===
+function checkTaskOnDate(task, targetDate) {
+    if (!task.deadline) return false;
+
+    // 1. Нормализуем дату задачи (UTC -> Local Midnight)
+    let dStr = task.deadline;
+    if (!dStr.endsWith('Z')) dStr += 'Z';
+    const taskDate = new Date(dStr);
+    // Сбрасываем время до 00:00 для корректного сравнения
+    const taskMidnight = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
+
+    // 2. Нормализуем целевую дату
+    const targetMidnight = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+
+    // Оптимизация: Задача не может быть в прошлом относительно своего начала
+    if (targetMidnight < taskMidnight) return false;
+
+    // 3. Проверяем точное совпадение (для разовых задач и первого дня повтора)
+    if (targetMidnight.getTime() === taskMidnight.getTime()) return true;
+
+    // 4. Проверяем правила повтора
+    if (task.repeat_rule) {
+        if (task.repeat_rule === 'daily') {
+            return true; // Ежедневно начиная с даты старта
+        }
+        if (task.repeat_rule === 'weekly') {
+            // Совпадает день недели (0-6)
+            return targetMidnight.getDay() === taskMidnight.getDay();
+        }
+        if (task.repeat_rule === 'monthly') {
+            // Совпадает число месяца (1-31)
+            return targetMidnight.getDate() === taskMidnight.getDate();
+        }
+    }
+    return false;
 }
 
 // --- Переключение Видов ---
@@ -74,18 +111,20 @@ function renderList() {
 
     // 2. Фильтр по дате (Календарь)
     if (state.selectedDateStr) {
-        filtered = filtered.filter(t => {
-            if (!t.deadline) return false;
-            let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-            const tDate = new Date(dStr);
-            const tDateStr = `${tDate.getFullYear()}-${String(tDate.getMonth()+1).padStart(2,'0')}-${String(tDate.getDate()).padStart(2,'0')}`;
-            return tDateStr === state.selectedDateStr;
-        });
+        // Парсим строку YYYY-MM-DD
+        const [y, m, d] = state.selectedDateStr.split('-').map(Number);
+        const selectedDate = new Date(y, m - 1, d);
+
+        // Используем нашу умную проверку повторов
+        filtered = filtered.filter(t => checkTaskOnDate(t, selectedDate));
     }
 
     // Пустой список
     if (filtered.length === 0) {
-        list.innerHTML = `<div class="text-center pt-20 opacity-40"><p>Нет задач</p></div>`;
+        list.innerHTML = `<div class="flex flex-col items-center justify-center pt-20 opacity-40 fade-in">
+            <i class="fa-solid fa-mug-hot text-4xl mb-3"></i>
+            <p>На этот день задач нет</p>
+        </div>`;
         return;
     }
 
@@ -93,21 +132,50 @@ function renderList() {
         const isDone = task.status === 'done';
         const isCommon = task.visibility === 'common';
 
+        // --- ЛОГИКА ВИЗУАЛИЗАЦИИ ДАТЫ ---
+        // По умолчанию берем реальный дедлайн
+        let displayDeadlineStr = task.deadline;
+
+        // ЕСЛИ выбран день в календаре И задача повторяющаяся -> Подменяем дату визуально
+        // (Чтобы задача на "следующий вторник" показывала дату вторника, а не прошлого дедлайна)
+        if (state.selectedDateStr && task.repeat_rule && task.deadline) {
+            // Берем время (часы:минуты) от оригинальной задачи
+            let origStr = task.deadline.endsWith('Z') ? task.deadline : task.deadline + 'Z';
+            let origDate = new Date(origStr);
+
+            // Берем год-месяц-день от выбранной в календаре даты
+            let [selY, selM, selD] = state.selectedDateStr.split('-').map(Number);
+
+            // Создаем новую дату: Выбранный день + Оригинальное время
+            let virtualDate = new Date(selY, selM - 1, selD, origDate.getHours(), origDate.getMinutes());
+
+            // Превращаем в строку для дальнейшей обработки
+            displayDeadlineStr = virtualDate.toISOString();
+        }
+        // ----------------------------------
+
         // Бейдж времени
         let timeBadge = '';
-        if (task.deadline) {
-            let dateStr = task.deadline;
-            if (!dateStr.endsWith('Z')) dateStr += 'Z';
-            const d = new Date(dateStr);
+        if (displayDeadlineStr) {
+            let dStr = displayDeadlineStr;
+            if (!dStr.endsWith('Z')) dStr += 'Z';
+            const d = new Date(dStr);
             const now = new Date();
-            const isLate = now > d && !isDone;
+
+            // Просрочено только если реальное время больше дедлайна
+            // И если мы НЕ смотрим в будущее через календарь (для будущих дат isLate всегда false)
+            let isLate = now > d && !isDone;
+            if (state.selectedDateStr && new Date(state.selectedDateStr) > now) {
+                isLate = false;
+            }
 
             const timeStr = d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'});
             const colorClass = isLate ? 'text-red-500 font-bold bg-red-50' : 'text-tg-hint bg-tg-secondary';
-            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2 flex items-center gap-1"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
+            const icon = isLate ? '<i class="fa-solid fa-fire"></i>' : '<i class="fa-regular fa-clock"></i>';
+
+            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2 flex items-center gap-1">${icon} ${timeStr}</span>`;
         }
 
-        // Иконка повтора
         const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate text-xs opacity-50 ml-2 text-tg-link"></i>' : '';
 
         const el = document.createElement('div');
@@ -146,7 +214,6 @@ function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // ОЧИСТКА: Удаляем все, кроме заголовков дней
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
     oldCells.forEach(c => c.remove());
 
@@ -160,40 +227,31 @@ function renderCalendar() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-    // Пустые ячейки
     for (let i = 0; i < adjustedFirstDay; i++) {
         const div = document.createElement('div');
-        div.className = 'calendar-empty';
+        div.className = 'calendar-empty'; // Пустой класс, чтобы можно было удалить
         grid.appendChild(div);
     }
 
     const today = new Date();
 
     for (let day = 1; day <= daysInMonth; day++) {
+        const currentDate = new Date(year, month, day);
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.innerText = day;
 
-        // Today
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             el.classList.add('today');
         }
-        // Selected
         if (state.selectedDateStr === dateStr) {
             el.classList.add('selected');
         }
 
-        // Dots
-        const dayTasks = state.tasks.filter(t => {
-            if (!t.deadline) return false;
-            let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-            const tDate = new Date(dStr);
-            return tDate.getFullYear() === year &&
-                   tDate.getMonth() === month &&
-                   tDate.getDate() === day;
-        });
+        // ИЩЕМ ЗАДАЧИ НА ЭТОТ ДЕНЬ ЧЕРЕЗ ХЕЛПЕР
+        const dayTasks = state.tasks.filter(t => checkTaskOnDate(t, currentDate));
 
         if (dayTasks.length > 0) {
             const dotsContainer = document.createElement('div');
@@ -227,7 +285,7 @@ function resetCalendarFilter() {
     renderList();
 }
 
-// --- Модалки (Create / Edit / Detail) ---
+// --- Модалки ---
 
 function openDetail(task) {
     state.currentTask = task;
@@ -266,11 +324,10 @@ function openDetail(task) {
 
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('light');
-    // Сброс полей
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
     document.getElementById('new-deadline').value = '';
-    document.getElementById('new-repeat').value = ''; // Сброс повтора
+    document.getElementById('new-repeat').value = '';
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
@@ -283,21 +340,19 @@ function openCreateModal() {
 
 function openEditMode() {
     const task = state.currentTask;
-    closeModals(); // Закрываем детальный
+    closeModals();
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 
-    // Заполнение
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
-    document.getElementById('new-repeat').value = task.repeat_rule || ''; // Заполняем повтор
+    document.getElementById('new-repeat').value = task.repeat_rule || '';
 
     if(task.deadline) {
         let dateStr = task.deadline;
         if (!dateStr.endsWith('Z')) dateStr += 'Z';
         const d = new Date(dateStr);
-        // Local ISO trick
         const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
         document.getElementById('new-deadline').value = localIso;
     } else {
@@ -365,8 +420,6 @@ async function submitUpdate() {
     tg.MainButton.hideProgress();
 }
 
-// --- Actions ---
-
 async function toggleTaskStatus(task) {
     const newStatus = task.status === 'done' ? 'pending' : 'done';
     tg.HapticFeedback.notificationOccurred('success');
@@ -387,7 +440,7 @@ async function addSubtask() {
 }
 
 async function deleteTask() {
-    tg.showConfirm("Удалить задачу?", async (ok) => {
+    tg.showConfirm("Удалить?", async (ok) => {
         if(ok) {
             closeModals();
             await api.deleteTask(state.currentTask.id);
