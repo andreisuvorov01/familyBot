@@ -9,6 +9,8 @@ let state = {
     view: 'list',
     calendarDate: new Date(),
     selectedDateStr: null
+    state.tempDate = null; // Для хранения выбранной даты в пикере
+    state.tempRepeat = null;
 };
 
 // --- INIT ---
@@ -341,11 +343,13 @@ function openEditMode() {
         if (!dateStr.endsWith('Z')) dateStr += 'Z';
         const d = new Date(dateStr);
         const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-        document.getElementById('new-deadline').value = localIso;
+         state.tempDate = new Date(task.deadline); // Сохраняем в state
+        document.getElementById('val-date').innerText = "...."; // Обновляем текст
+
     } else {
         document.getElementById('new-deadline').value = '';
     }
-
+    state.tempRepeat = task.repeat_rule;
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
@@ -397,7 +401,8 @@ function openDetail(task) {
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
-    const repeat = document.getElementById('new-repeat').value || null;
+    let deadline = state.tempDate ? state.tempDate.toISOString() : null;
+    let repeat = state.tempRepeat;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
     const dateVal = document.getElementById('new-deadline').value;
 
@@ -532,6 +537,121 @@ function setupEventListeners() {
     document.getElementById('overlay').onclick = closeModals;
     tg.BackButton.onClick(closeModals);
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
+}
+// --- CUSTOM REPEAT SHEET ---
+function openRepeatSheet() {
+    document.getElementById('sheet-repeat').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    // Чтобы закрыть по клику на фон
+    document.getElementById('overlay').onclick = () => {
+        closeSheets();
+        document.getElementById('create-modal').classList.add('active'); // Возвращаем родительскую модалку
+        document.getElementById('overlay').classList.add('active');
+    };
+}
+
+function selectRepeat(value) {
+    state.tempRepeat = value;
+
+    // Обновляем текст в UI
+    const map = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
+    const el = document.getElementById('val-repeat');
+    el.innerText = map[value];
+
+    if (value) {
+        el.classList.remove('placeholder');
+    } else {
+        el.classList.add('placeholder');
+    }
+
+    closeSheets();
+    // Возвращаем фокус на создание
+    document.getElementById('create-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+// --- CUSTOM DATE SHEET ---
+function openDateSheet() {
+    document.getElementById('sheet-date').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+
+    // Рендерим календарь для выбора (упрощенная версия)
+    renderPickerCalendar();
+
+    document.getElementById('overlay').onclick = () => {
+        closeSheets();
+        document.getElementById('create-modal').classList.add('active');
+        document.getElementById('overlay').classList.add('active');
+    };
+}
+
+function selectQuickDate(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    applyDate(d);
+}
+
+function applyDate(dateObj) {
+    // Берем время из инпута
+    const timeStr = document.getElementById('time-picker').value || "12:00";
+    const [hours, minutes] = timeStr.split(':').map(Number);
+
+    dateObj.setHours(hours);
+    dateObj.setMinutes(minutes);
+
+    state.tempDate = dateObj;
+
+    // Обновляем UI
+    const el = document.getElementById('val-date');
+    el.innerText = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
+    el.classList.remove('placeholder');
+
+    closeSheets();
+    document.getElementById('create-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+function clearDate() {
+    state.tempDate = null;
+    document.getElementById('val-date').innerText = "Нет";
+    document.getElementById('val-date').classList.add('placeholder');
+    closeSheets();
+    document.getElementById('create-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+// Мини-календарь внутри пикера (копия логики renderCalendar, но с кликом на выбор)
+function renderPickerCalendar() {
+    const grid = document.getElementById('picker-calendar-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    // Рисуем текущий месяц
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // ... (добавь заголовки дней если хочешь, или просто цифры)
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        el.innerHTML = `<span>${day}</span>`;
+
+        if (day === now.getDate()) el.classList.add('today');
+
+        el.onclick = () => {
+            const selected = new Date(year, month, day);
+            applyDate(selected);
+        };
+        grid.appendChild(el);
+    }
+}
+
+function closeSheets() {
+    document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
+    document.getElementById('overlay').classList.remove('active');
 }
 
 init();

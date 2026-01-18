@@ -56,26 +56,87 @@
 
     <!-- Create Modal -->
         <!-- Create Modal -->
-    <div id="create-modal" class="bottom-sheet" style="background-color: var(--bg-page);"> <!-- Фон модалки чуть серее -->
+       <!-- Create Modal -->
+    <div id="create-modal" class="bottom-sheet" style="background-color: var(--bg-page);">
         <div class="sheet-handle"></div>
         <h2 class="text-xl font-bold mb-5 text-center text-main">Новая задача</h2>
 
-        <!-- 1. Название (Большое поле) -->
-        <input type="text" id="new-title" class="input-standalone" placeholder="Название задачи" style="font-weight: 600;">
+        <!-- Название и Описание -->
+        <input type="text" id="new-title" class="input-standalone" placeholder="Название задачи" style="background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <textarea id="new-desc" rows="3" class="input-standalone" style="background: var(--bg-card); resize: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" placeholder="Заметки"></textarea>
 
-        <!-- 2. Описание (Большое поле) -->
-        <textarea id="new-desc" rows="3" class="input-standalone" style="resize: none; min-height: 80px;" placeholder="Заметки"></textarea>
-
-        <!-- 3. Настройки (Группа) -->
-        <div class="form-group">
-            <!-- Дата -->
-            <div class="form-row">
-                <span class="form-label">Дата</span>
-                <!-- input занимает всё оставшееся место -->
-                <div style="flex: 1; margin-left: 10px;">
-                    <input type="datetime-local" id="new-deadline">
+        <!-- Новые красивые кнопки Выбора -->
+        <div class="visibility-grid">
+            <label>
+                <input type="radio" name="visibility" value="common" checked hidden>
+                <div class="vis-card common">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Семья</span>
                 </div>
+            </label>
+            <label>
+                <input type="radio" name="visibility" value="private" hidden>
+                <div class="vis-card private">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Личное</span>
+                </div>
+            </label>
+        </div>
+
+        <!-- Кастомные селекторы (Fake Inputs) -->
+        <div class="form-group" style="background: transparent; box-shadow: none;">
+            <!-- Дата -->
+            <div id="trigger-date" class="fake-input" onclick="openDateSheet()">
+                <span class="label">Дата</span>
+                <span class="value placeholder" id="val-date">Нет</span>
             </div>
+
+            <!-- Повтор -->
+            <div id="trigger-repeat" class="fake-input" onclick="openRepeatSheet()">
+                <span class="label">Повтор</span>
+                <span class="value placeholder" id="val-repeat">Нет</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- === НОВЫЕ МОДАЛКИ (ACTION SHEETS) === -->
+
+    <!-- 1. Выбор Повтора -->
+    <div id="sheet-repeat" class="bottom-sheet">
+        <h3 class="text-center font-bold mb-4 text-lg">Повтор</h3>
+        <div class="bg-[var(--bg-card)] rounded-xl overflow-hidden">
+            <div class="action-sheet-item" onclick="selectRepeat(null)">Нет</div>
+            <div class="action-sheet-item" onclick="selectRepeat('daily')">Каждый день</div>
+            <div class="action-sheet-item" onclick="selectRepeat('weekly')">Каждую неделю</div>
+            <div class="action-sheet-item" onclick="selectRepeat('monthly')">Каждый месяц</div>
+        </div>
+    </div>
+
+    <!-- 2. Выбор Даты (Smart Picker) -->
+    <div id="sheet-date" class="bottom-sheet">
+        <h3 class="text-center font-bold mb-4 text-lg">Выберите дату</h3>
+
+        <!-- Быстрые кнопки -->
+        <div class="flex gap-2 mb-4">
+            <button onclick="selectQuickDate(0)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition">Сегодня</button>
+            <button onclick="selectQuickDate(1)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition">Завтра</button>
+        </div>
+
+        <!-- Выбор времени -->
+        <div class="bg-[var(--bg-card)] rounded-xl p-4 mb-4 shadow-sm flex items-center justify-between">
+            <span class="font-medium">Время</span>
+            <input type="time" id="time-picker" value="12:00" class="bg-[var(--bg-page)] rounded-lg p-2 font-bold w-24 text-center">
+        </div>
+
+        <!-- Календарь (реюзаем наш стиль) -->
+        <div class="bg-[var(--bg-card)] rounded-xl p-4 shadow-sm">
+            <!-- Здесь мы сгенерируем мини-календарь через JS -->
+            <div id="picker-calendar-grid" class="calendar-grid"></div>
+        </div>
+
+        <button onclick="clearDate()" class="w-full mt-4 py-3 text-red-500 font-medium">Очистить дату</button>
+    </div>
+
 
             <!-- Повтор -->
             <div class="form-row">

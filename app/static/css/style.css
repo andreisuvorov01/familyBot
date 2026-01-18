@@ -386,3 +386,87 @@ input[type="radio"]:checked + .segment-option {
     box-shadow: 0 3px 8px rgba(0,0,0,0.12);
     font-weight: 600;
 }
+/* === NEW VISIBILITY SELECTOR (Big Cards) === */
+.visibility-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.vis-card {
+    background-color: var(--bg-card);
+    padding: 16px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s var(--spring-easing);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.vis-card i { font-size: 24px; margin-bottom: 4px; }
+.vis-card span { font-weight: 600; font-size: 14px; }
+
+/* Активное состояние - Семья (Синий) */
+input[value="common"]:checked + .vis-card {
+    background-color: var(--accent);
+    color: white;
+    box-shadow: 0 8px 20px rgba(51, 144, 236, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Активное состояние - Личное (Темный/Серый) */
+input[value="private"]:checked + .vis-card {
+    background-color: var(--text-main); /* Черный в светлой, Белый в темной */
+    color: var(--bg-page);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+}
+
+/* === FAKE INPUTS (Trigger Buttons) === */
+.fake-input {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 16px;
+    color: var(--text-main);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.fake-input:active { opacity: 0.7; transform: scale(0.98); }
+.fake-input span { pointer-events: none; }
+.fake-input .value { color: var(--accent); font-weight: 600; }
+.fake-input .placeholder { color: var(--text-hint); font-weight: 400; }
+
+/* === ACTION SHEETS (Custom Selects) === */
+.action-sheet-item {
+    padding: 16px;
+    border-bottom: 1px solid var(--divider);
+    font-size: 17px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.action-sheet-item:last-child { border-bottom: none; }
+.action-sheet-item:active { background-color: var(--bg-page); }
+.action-sheet-item.selected { color: var(--accent); font-weight: 600; }
+.action-sheet-item.selected::after {
+    content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+}
+
+/* Custom Time Picker inside Sheet */
+.time-picker-row {
+    display: flex; justify-content: center; gap: 10px; padding: 20px;
+}
+.time-picker-row select {
+    width: auto; background-color: var(--bg-page); border-radius: 8px; font-weight: bold; font-size: 20px;
+}
