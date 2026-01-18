@@ -226,62 +226,52 @@ function renderCalendar() {
     const today = new Date(); // Локальное время браузера
 
     for (let day = 1; day <= daysInMonth; day++) {
-        // Создаем дату для текущей ячейки (00:00 локального времени)
-        const cellDate = new Date(year, month, day);
-
-        // Строка для сравнения YYYY-MM-DD
+        const currentDate = new Date(year, month, day);
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
-        el.innerText = day;
 
-        // Стиль "Сегодня"
+        // 1. Цифра дня
+        const numSpan = document.createElement('span');
+        numSpan.innerText = day;
+        el.appendChild(numSpan);
+
+        // 2. Классы состояний
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             el.classList.add('today');
         }
-        // Стиль "Выбрано"
         if (state.selectedDateStr === dateStr) {
             el.classList.add('selected');
         }
 
-        // --- ЛОГИКА ТОЧЕК ---
-        // Фильтруем задачи, которые совпадают с этой датой
-        const dayTasks = state.tasks.filter(task => {
-            // Используем ту же функцию, что и для фильтрации списка
-            return checkTaskOnDate(task, cellDate);
-        });
+        // 3. Точки задач
+        const dayTasks = state.tasks.filter(t => checkTaskOnDate(t, currentDate));
 
         if (dayTasks.length > 0) {
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'task-dots';
 
-            // Рисуем максимум 4 точки
-            dayTasks.slice(0, 4).forEach(t => {
+            dayTasks.slice(0, 3).forEach(t => { // Максимум 3 точки, чтобы влезли
                 const dot = document.createElement('div');
-                // Определяем цвет точки
                 let dotClass = 'common';
                 if (t.visibility !== 'common') dotClass = 'private';
-                if (t.status === 'done') dotClass = 'done'; // Можно добавить стиль для выполненных
 
-                // Если задача просрочена (дедлайн был раньше сегодня и не выполнена)
-                // Но для календаря лучше показывать просто наличие задачи
-                if (t.deadline && new Date(t.deadline) < new Date() && t.status !== 'done') {
-                     dotClass = 'late';
+                // Проверка просрочки
+                if (t.deadline) {
+                    let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
+                    if (new Date(dStr) < new Date() && t.status !== 'done') dotClass = 'late';
                 }
 
                 dot.className = `dot ${dotClass}`;
-
-                // Если задача выполнена, красим точку в серый (опционально)
-                if (t.status === 'done') {
-                    dot.style.backgroundColor = 'var(--text-hint)';
-                    dot.style.opacity = '0.3';
-                }
-
                 dotsContainer.appendChild(dot);
             });
             el.appendChild(dotsContainer);
         }
+
+        el.onclick = () => selectDate(dateStr);
+        grid.appendChild(el);
+    }
         // --------------------
 
         el.onclick = () => selectDate(dateStr);

@@ -300,3 +300,4 @@ body.is-ios .task-card { box-shadow: none; } /* Flat on iOS list */
     background-color: white !important;
     opacity: 0.8;
 }
+.hidden { display: none !important; }
