@@ -1,23 +1,22 @@
-/* Основные настройки */
+/* --- Основные настройки --- */
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
     color: var(--tg-theme-text-color, #000);
     -webkit-tap-highlight-color: transparent;
-    overflow-x: hidden; /* Блокируем горизонтальный скролл */
+    overflow-x: hidden;
 }
 
-/* Скрываем скроллбар, но оставляем прокрутку */
 ::-webkit-scrollbar { display: none; }
 
-/* Анимации */
+/* --- Анимации --- */
 .fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Шторка (Модальное окно) */
+/* --- Модальные окна (Шторки) --- */
 .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.4);
     backdrop-filter: blur(4px); opacity: 0; pointer-events: none;
@@ -36,18 +35,18 @@ body {
 }
 .bottom-sheet.active { bottom: 0; }
 
-/* Переключатель видимости (Family/Personal) */
+/* --- Элементы форм --- */
 .visibility-selector input:checked + div {
     background-color: var(--tg-theme-button-color, #3b82f6);
     color: var(--tg-theme-button-text-color, #fff);
     border-color: transparent;
 }
 
-/* Чекбокс */
 .custom-checkbox {
     appearance: none; width: 22px; height: 22px;
-    border: 2px solid #d1d5db; border-radius: 6px;
+    border: 2px solid var(--tg-theme-hint-color, #d1d5db); border-radius: 6px;
     display: grid; place-content: center; transition: 0.2s;
+    cursor: pointer;
 }
 .custom-checkbox::before {
     content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
@@ -57,6 +56,11 @@ body {
     background-color: #22c55e; border-color: #22c55e;
 }
 .custom-checkbox:checked::before { transform: scale(1); }
+
+/* =========================================
+   КАЛЕНДАРЬ (ВОТ ЭТОГО НЕ ХВАТАЛО)
+   ========================================= */
+
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr); /* 7 колонок для дней недели */
