@@ -140,36 +140,47 @@ function changeMonth(delta) {
 
 function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
-    if (!grid) return; // Защита если календарь скрыт/удален
+    if (!grid) return;
 
-    // Очищаем всё, кроме заголовков дней (первые 7 элементов)
-    while (grid.children.length > 7) {
-        grid.removeChild(grid.lastChild);
-    }
+    // 1. ОЧИСТКА: Удаляем все элементы, которые НЕ являются заголовками дней
+    // (У заголовков класс calendar-day-name, у ячеек - calendar-day или пустой div)
+    const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
+    oldCells.forEach(cell => cell.remove());
 
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
 
-    document.getElementById('calendar-month-year').innerText = state.calendarDate.toLocaleString('ru', { month: 'long', year: 'numeric' });
+    // Заголовок
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
 
-    const firstDayIndex = new Date(year, month, 1).getDay();
+    // Расчет дней
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0-Вс, 1-Пн
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Пн=0 ... Вс=6
     const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
+    // 2. Пустые ячейки (отступ)
     for (let i = 0; i < adjustedFirstDay; i++) {
         const div = document.createElement('div');
+        // Добавляем класс, чтобы потом его можно было удалить при очистке
+        div.className = 'calendar-empty';
         grid.appendChild(div);
     }
 
+    // 3. Дни
     const today = new Date();
 
     for (let day = 1; day <= daysInMonth; day++) {
+        // ... (код создания дня без изменений) ...
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.innerText = day;
 
+        // ... стили Today / Selected ...
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             el.classList.add('today');
         }
@@ -177,7 +188,7 @@ function renderCalendar() {
             el.classList.add('selected');
         }
 
-        // Поиск задач
+        // ... Точки ...
         const dayTasks = state.tasks.filter(t => {
             if (!t.deadline) return false;
             let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
@@ -205,6 +216,7 @@ function renderCalendar() {
         grid.appendChild(el);
     }
 }
+
 
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
