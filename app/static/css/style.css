@@ -57,3 +57,70 @@ body {
     background-color: #22c55e; border-color: #22c55e;
 }
 .custom-checkbox:checked::before { transform: scale(1); }
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.calendar-day-name {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.5;
+    padding-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.calendar-day {
+    aspect-ratio: 1; /* Квадратные ячейки */
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: var(--tg-theme-bg-color, #fff);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: 0.1s;
+    position: relative;
+}
+
+/* Текущий день (сегодня) */
+.calendar-day.today {
+    color: var(--tg-theme-button-color, #3b82f6);
+    font-weight: 700;
+}
+
+/* Выбранный день */
+.calendar-day.selected {
+    background-color: var(--tg-theme-button-color, #3b82f6);
+    color: var(--tg-theme-button-text-color, #fff);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Индикаторы задач (точки) */
+.task-dots {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 80%;
+}
+
+.dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+}
+.dot.common { background-color: #3b82f6; } /* Синий */
+.dot.private { background-color: #9ca3af; } /* Серый */
+.dot.late { background-color: #ef4444; } /* Красный */
+
+/* Инверсия цветов для точек на выбранном дне */
+.calendar-day.selected .dot { background-color: white !important; opacity: 0.8; }

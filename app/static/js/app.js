@@ -4,7 +4,10 @@ tg.expand();
 let state = {
     tasks: [],
     filter: 'all',
-    currentTask: null
+    currentTask: null,
+    view: 'list',
+    calendarDate: new Date(),
+    selectedDateStr: null
 };
 
 async function init() {
@@ -36,10 +39,44 @@ async function loadTasks() {
         console.error(e);
     }
 }
+function toggleView() {
+    state.view = state.view === 'list' ? 'calendar' : 'list';
+    const wrapper = document.getElementById('calendar-wrapper');
+    const btn = document.getElementById('view-toggle-btn');
 
+    if (state.view === 'calendar') {
+        wrapper.classList.remove('hidden');
+        btn.innerHTML = '<i class="fa-solid fa-list"></i> Список';
+        renderCalendar();
+    } else {
+        wrapper.classList.add('hidden');
+        btn.innerHTML = '<i class="fa-regular fa-calendar"></i> Календарь';
+        resetCalendarFilter(); // Сбрасываем фильтр при выходе
+    }
+}
 function renderList() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
+
+    // 1. Фильтр по Табам (Все/Личные)
+    let filtered = state.tasks.filter(t => {
+        if (state.filter === 'all') return true;
+        if (state.filter === 'common') return t.visibility === 'common';
+        return t.visibility !== 'common';
+    });
+
+    // 2. Фильтр по ДАТЕ (Если выбрана в календаре)
+    if (state.selectedDateStr) {
+        filtered = filtered.filter(t => {
+            if (!t.deadline) return false;
+            let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
+            const tDate = new Date(dStr);
+
+            // Сравниваем локальные даты
+            const tDateStr = `${tDate.getFullYear()}-${String(tDate.getMonth()+1).padStart(2,'0')}-${String(tDate.getDate()).padStart(2,'0')}`;
+            return tDateStr === state.selectedDateStr;
+        });
+    }
 
     const filtered = state.tasks.filter(t => {
         if (state.filter === 'all') return true;
@@ -309,5 +346,109 @@ function setupEventListeners() {
     tg.BackButton.onClick(closeModals);
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
 }
+function changeMonth(delta) {
+    state.calendarDate.setMonth(state.calendarDate.getMonth() + delta);
+    renderCalendar();
+}
 
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    // Очищаем всё, кроме заголовков дней (первые 7 элементов)
+    while (grid.children.length > 7) {
+        grid.removeChild(grid.lastChild);
+    }
+
+    const year = state.calendarDate.getFullYear();
+    const month = state.calendarDate.getMonth();
+
+    // Обновляем заголовок
+    document.getElementById('calendar-month-year').innerText = state.calendarDate.toLocaleString('ru', { month: 'long', year: 'numeric' });
+
+    // Определяем первый день месяца и кол-во дней
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Вс, 1 = Пн
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Корректировка для ПН (чтобы ПН был первым, а ВС седьмым)
+    // getDay(): Вс=0, Пн=1... Сб=6
+    // Нам нужно: Пн=0... Вс=6
+    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+    // Пустые ячейки до начала месяца
+    for (let i = 0; i < adjustedFirstDay; i++) {
+        const div = document.createElement('div');
+        grid.appendChild(div);
+    }
+
+    // Дни месяца
+    const today = new Date();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        // Формат YYYY-MM-DD локально (без сдвига UTC)
+        // Хак: создаем строку вручную, чтобы избежать таймзон
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        el.innerText = day;
+
+        // Проверка на сегодня
+        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            el.classList.add('today');
+        }
+
+        // Проверка на выбранный
+        if (state.selectedDateStr === dateStr) {
+            el.classList.add('selected');
+        }
+
+        // Поиск задач на этот день
+        // Задача имеет UTC дедлайн. Нам нужно привести его к локальной дате браузера.
+        const dayTasks = state.tasks.filter(t => {
+            if (!t.deadline) return false;
+            let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
+            const tDate = new Date(dStr);
+
+            return tDate.getFullYear() === year &&
+                   tDate.getMonth() === month &&
+                   tDate.getDate() === day;
+        });
+
+        // Рисуем точки
+        if (dayTasks.length > 0) {
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'task-dots';
+            // Максимум 4 точки
+            dayTasks.slice(0, 4).forEach(t => {
+                const dot = document.createElement('div');
+                dot.className = `dot ${t.status === 'done' ? 'bg-gray-300' : (t.visibility === 'common' ? 'common' : 'private')}`;
+                // Если просрочена
+                if (new Date() > new Date(t.deadline) && t.status !== 'done') {
+                    dot.className = 'dot late';
+                }
+                dotsContainer.appendChild(dot);
+            });
+            el.appendChild(dotsContainer);
+        }
+
+        // Клик по дню
+        el.onclick = () => selectDate(dateStr);
+        grid.appendChild(el);
+    }
+}
+
+function selectDate(dateStr) {
+    tg.HapticFeedback.selectionChanged();
+    state.selectedDateStr = dateStr;
+    document.getElementById('reset-filter-btn').style.display = 'block';
+    renderCalendar(); // Чтобы обновить стиль .selected
+    renderList(); // Фильтруем список
+}
+
+function resetCalendarFilter() {
+    state.selectedDateStr = null;
+    document.getElementById('reset-filter-btn').style.display = 'none';
+    renderCalendar();
+    renderList();
+}
 init();

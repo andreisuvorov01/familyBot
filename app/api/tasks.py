@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select, delete, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from datetime import datetime, timedelta
 from app.core.database import get_async_session
 from app.core.models.user import User
 from app.core.models.Task import Task, TaskVisibility, Subtask
@@ -95,7 +95,18 @@ async def create_task(
 
     # Уведомляем только если задача общая
     if final_visibility == TaskVisibility.COMMON:
-        text = f"🆕 <b>Новая задача!</b>\n📌 {task_in.title}\n<i>Добавил(а): {user.username or 'Партнер'}</i>"
+        text = f"🆕 <b>Новая задача!</b>\n📌 {task_in.title}"
+
+        # Добавляем дедлайн, если он есть
+        if task_in.deadline:
+            # Конвертируем UTC в МСК (прибавляем 3 часа для красивого отображения)
+            # Если твой часовой пояс другой - поменяй цифру 3 на нужную
+            deadline_msk = task_in.deadline + timedelta(hours=3)
+            time_str = deadline_msk.strftime('%d.%m в %H:%M')
+            text += f"\n⏰ <b>Дедлайн:</b> {time_str}"
+
+        text += f"\n<i>Добавил(а): {user.username or 'Партнер'}</i>"
+
         await notify_partner(session, user, text)
 
     return new_task
@@ -118,6 +129,7 @@ async def update_task(
     if updates.status: task.status = updates.status
     if updates.title: task.title = updates.title
     if updates.deadline: task.deadline = updates.deadline
+    if updates.description: task.description = updates.description
     if updates.visibility:
         # Такая же логика конвертации, как при создании
         if updates.visibility == "private":

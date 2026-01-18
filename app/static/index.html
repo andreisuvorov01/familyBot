@@ -19,10 +19,12 @@
 <body class="pb-24 px-4 pt-2 text-[var(--tg-theme-text-color)]">
 
     <!-- Header -->
-    <header class="flex justify-between items-center mb-4 sticky top-0 py-2 bg-[var(--tg-theme-secondary-bg-color)] z-20">
+    <header class="flex justify-between items-center mb-2 sticky top-0 py-2 bg-[var(--tg-theme-secondary-bg-color)] z-20">
         <div>
             <h1 class="text-2xl font-bold">Задачи</h1>
-            <p class="text-xs opacity-60">Семейный планировщик</p>
+            <button onclick="toggleView()" id="view-toggle-btn" class="text-xs font-medium text-blue-500 bg-blue-100 px-2 py-1 rounded-md mt-1 active:scale-95 transition">
+                <i class="fa-regular fa-calendar"></i> Календарь
+            </button>
         </div>
         <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border-2 border-[var(--tg-theme-bg-color)]">
             <span id="avatar-letter">?</span>
@@ -35,7 +37,33 @@
         <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60 hover:opacity-100" data-filter="personal">Личные</button>
         <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition opacity-60 hover:opacity-100" data-filter="common">Общие</button>
     </div>
+<div id="calendar-wrapper" class="hidden mb-6 fade-in">
+        <!-- Управление месяцем -->
+        <div class="flex justify-between items-center mb-4 px-2">
+            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-[var(--tg-theme-bg-color)] shadow-sm"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+            <h2 id="calendar-month-year" class="font-bold text-lg capitalize">Январь 2026</h2>
+            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-[var(--tg-theme-bg-color)] shadow-sm"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+        </div>
 
+        <!-- Сетка -->
+        <div class="calendar-grid" id="calendar-grid">
+            <!-- Дни недели -->
+            <div class="calendar-day-name">Пн</div>
+            <div class="calendar-day-name">Вт</div>
+            <div class="calendar-day-name">Ср</div>
+            <div class="calendar-day-name">Чт</div>
+            <div class="calendar-day-name">Пт</div>
+            <div class="calendar-day-name text-red-400">Сб</div>
+            <div class="calendar-day-name text-red-400">Вс</div>
+            <!-- Дни сгенерируются JS -->
+        </div>
+
+        <div class="flex justify-center mt-2">
+            <button onclick="resetCalendarFilter()" class="text-xs text-blue-500 font-medium" id="reset-filter-btn" style="display: none;">
+                Показать все задачи
+            </button>
+        </div>
+    </div>
     <!-- Task List -->
     <div id="task-list" class="space-y-3">
         <!-- Skeleton Loading -->
