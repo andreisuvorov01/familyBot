@@ -8,7 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
-
 </head>
 <body class="pb-24 px-4 pt-2">
 
@@ -35,7 +34,6 @@
         <!-- Skeleton Loading -->
         <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
         <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
-        <div class="h-16 bg-[var(--tg-theme-bg-color)] rounded-2xl animate-pulse"></div>
     </div>
 
     <!-- FAB (Floating Action Button) -->
@@ -46,15 +44,19 @@
     <!-- Overlay -->
     <div id="overlay" class="modal-overlay"></div>
 
-    <!-- Modal: Create Task -->
+    <!-- Modal: Create/Edit Task -->
     <div id="create-modal" class="bottom-sheet">
         <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
-        <h2 class="text-xl font-bold mb-4">Новая задача</h2>
+        <h2 class="text-xl font-bold mb-4">Задача</h2>
 
-        <input type="text" id="new-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-blue-500 transition" placeholder="Название...">
+        <input type="text" id="new-title" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-3 focus:ring-2 focus:ring-blue-500 transition font-medium" placeholder="Название задачи">
+
+        <!-- Поле Описания -->
         <textarea id="new-desc" rows="3" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-4 rounded-xl outline-none mb-4 focus:ring-2 focus:ring-blue-500 transition resize-none text-sm" placeholder="Добавить описание..."></textarea>
+
         <label class="block text-xs font-bold opacity-50 mb-1 ml-1">Дедлайн (необязательно)</label>
-<input type="datetime-local" id="new-deadline" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-3 rounded-xl outline-none mb-4 text-sm">
+        <input type="datetime-local" id="new-deadline" class="w-full bg-[var(--tg-theme-secondary-bg-color)] p-3 rounded-xl outline-none mb-4 text-sm text-gray-600">
+
         <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="common" checked class="hidden">
@@ -74,22 +76,18 @@
     <!-- Modal: Task Detail -->
     <div id="detail-modal" class="bottom-sheet">
         <div class="flex justify-between items-start mb-4">
-            <!-- Заголовок -->
             <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2 flex-1 break-words">Заголовок</h2>
-
-            <!-- Кнопки действий -->
-            <div class="flex gap-1 shrink-0">
-                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-gray-100 text-blue-600 flex items-center justify-center active:bg-gray-200 transition">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-gray-100 text-red-500 flex items-center justify-center active:bg-gray-200 transition">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+            <div class="flex gap-2 shrink-0">
+                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-gray-100 text-blue-600 flex items-center justify-center active:bg-gray-200 transition"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-gray-100 text-red-500 flex items-center justify-center active:bg-gray-200 transition"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
-        <div class="mb-4 bg-gray-50 rounded-xl p-3 border border-gray-100">
+
+        <!-- Блок описания (Важно для JS) -->
+        <div class="mb-5 bg-gray-50 rounded-xl p-3 border border-gray-100">
             <p id="detail-desc" class="text-sm text-gray-600 whitespace-pre-wrap">Нет описания</p>
         </div>
+
         <!-- Subtasks -->
         <div class="mb-6">
             <h3 class="text-xs font-bold uppercase opacity-50 mb-2">Чек-лист</h3>
@@ -108,6 +106,6 @@
 
     <!-- Scripts -->
     <script src="/static/js/api.js"></script>
-<script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

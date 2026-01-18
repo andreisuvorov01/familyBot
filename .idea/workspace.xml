@@ -4,17 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a9f95470-d0b0-4c95-89fd-5b7ac73227a9" name="Changes" comment="deadline">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/tasks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/bot/handlers/start.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/bot/handlers/start.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/core/models/schemas.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/core/models/schemas.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/services/scheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/scheduler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/static/js/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/js/api.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/static/js/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/js/app.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot_polling.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot_polling.py" afterDir="false" />
-    </list>
+    <list default="true" id="a9f95470-d0b0-4c95-89fd-5b7ac73227a9" name="Changes" comment="editTask" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -221,7 +211,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768677804739</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="editTask">
+      <option name="closed" value="true" />
+      <created>1768761987597</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1768761987597</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -229,6 +227,7 @@
     <MESSAGE value="security" />
     <MESSAGE value="miniapp" />
     <MESSAGE value="deadline" />
-    <option name="LAST_COMMIT_MESSAGE" value="deadline" />
+    <MESSAGE value="editTask" />
+    <option name="LAST_COMMIT_MESSAGE" value="editTask" />
   </component>
 </project>
