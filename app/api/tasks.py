@@ -120,9 +120,13 @@ async def update_task(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session)
 ):
+    print(f"🔧 PATCH request for Task {task_id}. Data: {updates.dict(exclude_unset=True)}")
+
     stmt = select(Task).where(Task.id == task_id, Task.family_id == user.family_id)
     task = (await session.execute(stmt)).scalar_one_or_none()
-    if not task: raise HTTPException(404)
+    if not task:
+        print(f"❌ Task {task_id} not found or access denied")
+        raise HTTPException(404)
 
     old_status = task.status
 
@@ -136,7 +140,7 @@ async def update_task(
             task.visibility = TaskVisibility.HUSBAND if user.role.value == "husband" else TaskVisibility.WIFE
         elif updates.visibility == "common":
             task.visibility = TaskVisibility.COMMON
-
+    print(f"🔄 Updating Task {task_id}: Status {old_status} -> {task.status}, Repeat: {task.repeat_rule}")
     # Обновление правила повтора (если прислали None - значит удаляем правило)
     # Используем has_key или проверяем наличие в dict, чтобы отличить отсутствие поля от null
     # Но в Pydantic v2 просто проверяем, было ли поле передано
