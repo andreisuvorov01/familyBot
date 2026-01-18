@@ -114,12 +114,20 @@ async def update_task(
 
     old_status = task.status
 
+    # --- ОБНОВЛЕНИЕ ПОЛЕЙ ---
     if updates.status: task.status = updates.status
     if updates.title: task.title = updates.title
+    if updates.deadline: task.deadline = updates.deadline
+    if updates.visibility:
+        # Такая же логика конвертации, как при создании
+        if updates.visibility == "private":
+            task.visibility = TaskVisibility.HUSBAND if user.role.value == "husband" else TaskVisibility.WIFE
+        elif updates.visibility == "common":
+            task.visibility = TaskVisibility.COMMON
 
     await session.commit()
 
-    # Уведомление о завершении
+    # Уведомления (остаются как были)
     if updates.status == "done" and old_status != "done" and task.visibility == TaskVisibility.COMMON:
         text = f"✅ <b>Задача выполнена!</b>\n<s>{task.title}</s>"
         await notify_partner(session, user, text)

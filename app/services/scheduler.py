@@ -20,23 +20,18 @@ async def send_morning_notifications():
 # 2. Проверка дедлайнов (НОВОЕ)
 async def check_deadlines():
     async with async_session_maker() as session:
-        now = datetime.utcnow()  # Важно: время сервера (UTC)
+        # Используем UTC, так как в БД даты лежат в UTC (от JS toISOString)
+        now = datetime.utcnow()
 
-        # Ищем задачи, которые:
-        # 1. Не выполнены
-        # 2. Имеют дедлайн
-        # 3. Дедлайн уже прошел ИЛИ наступит в ближайшие 30 минут
-        # 4. Напоминание еще НЕ отправлено
-
-        # Условие: deadline < (now + 30 min)
         target_time = now + timedelta(minutes=30)
 
         query = select(Task).where(
             Task.status == "pending",
             Task.deadline != None,
             Task.deadline <= target_time,
-            Task.reminder_sent == False
+            Task.reminder_sent == False # False = 0 в SQLite
         )
+
 
         tasks = (await session.execute(query)).scalars().all()
 

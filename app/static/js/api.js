@@ -41,7 +41,13 @@ class ApiClient {
             headers: this.headers
         });
     }
-
+    async updateTask(id, data) {
+            await fetch(`${API_URL}/${id}`, {
+                method: 'PATCH',
+                headers: this.headers,
+                body: JSON.stringify(data)
+            });
+        }
     async addSubtask(taskId, title) {
         const res = await fetch(`${API_URL}/${taskId}/subtasks`, {
             method: 'POST',

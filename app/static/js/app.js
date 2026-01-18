@@ -21,13 +21,26 @@ async function init() {
 }
 
 function setupTheme() {
-    // Красим фон приложения в цвет темы Telegram
+    // Красим фон
     document.body.style.backgroundColor = tg.themeParams.secondary_bg_color || '#f3f4f6';
 
-    // Аватарка (первая буква имени)
+    // Логика Аватарки
     const user = tg.initDataUnsafe?.user;
     if (user) {
-        document.getElementById('avatar-letter').innerText = user.first_name ? user.first_name[0] : 'U';
+        const avatarEl = document.getElementById('user-avatar');
+
+        // Проверяем, прислал ли Telegram ссылку на фото
+        if (user.photo_url) {
+            // Если фото есть -> вставляем картинку
+            avatarEl.innerHTML = `<img src="${user.photo_url}" class="w-full h-full object-cover" alt="User">`;
+
+            // Убираем цветной фон (градиент), чтобы было чище
+            avatarEl.style.background = 'none';
+            avatarEl.classList.remove('shadow-lg'); // Можно убрать тень, если хочется
+        } else {
+            // Если фото нет (или скрыто приватностью) -> оставляем букву
+            document.getElementById('avatar-letter').innerText = user.first_name ? user.first_name[0].toUpperCase() : 'U';
+        }
     }
 }
 
@@ -122,8 +135,8 @@ function renderList() {
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('light');
 
-    // Сброс полей
     document.getElementById('new-title').value = '';
+    document.getElementById('new-desc').value = '';
     document.getElementById('new-deadline').value = '';
 
     document.getElementById('create-modal').classList.add('active');
@@ -136,31 +149,25 @@ function openCreateModal() {
 
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
+    const desc = document.getElementById('new-desc').value; // <-- Читаем описание
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
     const dateVal = document.getElementById('new-deadline').value;
 
-    if(!title.trim()) {
-        tg.HapticFeedback.notificationOccurred('error');
-        // Трясем поле ввода (визуальный эффект можно добавить в CSS)
-        document.getElementById('new-title').focus();
-        return;
-    }
+    if(!title.trim()) return;
 
-    // Формируем дату для API (ISO string)
     let deadline = null;
-    if (dateVal) {
-        deadline = new Date(dateVal).toISOString();
-    }
+    if (dateVal) deadline = new Date(dateVal).toISOString();
 
     tg.MainButton.showProgress();
     try {
-        await api.createTask({ title, visibility, deadline });
+        // Добавляем description в запрос
+        await api.createTask({ title, description: desc, visibility, deadline });
+
         tg.HapticFeedback.notificationOccurred('success');
         closeModals();
-        loadTasks(); // Обновляем список немедленно
+        loadTasks();
     } catch (e) {
-        tg.HapticFeedback.notificationOccurred('error');
-        alert("Ошибка создания: " + e.message);
+        alert(e);
     } finally {
         tg.MainButton.hideProgress();
     }
@@ -170,13 +177,26 @@ async function submitCreate() {
 
 function openDetail(task) {
     state.currentTask = task;
-    const isDone = task.status === 'done';
+    // ... код заголовка ...
 
-    // Заголовок
-    const titleEl = document.getElementById('detail-title');
-    titleEl.innerText = task.title;
-    titleEl.className = `text-xl font-bold leading-tight mr-2 ${isDone ? 'line-through opacity-50' : ''}`;
-
+    // Заполняем описание
+    const descEl = document.getElementById('detail-desc');
+    if (task.description && task.description.trim() !== "") {
+        descEl.innerText = task.description;
+        descEl.classList.remove('opacity-50', 'italic');
+    } else {
+        descEl.innerText = "Нет описания";
+        descEl.classList.add('opacity-50', 'italic');
+    }
+    const headerHtml = `
+        <div class="flex justify-between items-start mb-4">
+            <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2 break-all">Заголовок</h2>
+            <div class="flex gap-3">
+                 <button onclick="openEditMode()" class="text-blue-500 p-2 active:opacity-50"><i class="fa-solid fa-pen"></i></button>
+                 <button onclick="deleteTask()" class="text-red-500 p-2 active:opacity-50"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
+    `;
     // Кнопка статуса (Зеленая или Серая)
     const btn = document.getElementById('btn-status');
     if (isDone) {
@@ -194,7 +214,72 @@ function openDetail(task) {
     document.getElementById('overlay').classList.add('active');
     tg.BackButton.show();
 }
+function openEditMode() {
+    const task = state.currentTask;
 
+    // Закрываем детальный просмотр
+    document.getElementById('detail-modal').classList.remove('active');
+
+    // Открываем модалку создания
+    document.getElementById('create-modal').classList.add('active');
+
+    // 1. Заполняем поля
+    document.getElementById('new-title').value = task.title;
+    document.getElementById('new-desc').value = task.description || '';
+
+    // 2. Заполняем дату (нужен формат YYYY-MM-DDTHH:mm для input datetime-local)
+    if(task.deadline) {
+        // Отрезаем секунды и миллисекунды (2025-01-01T12:00)
+        const iso = new Date(task.deadline).toISOString().slice(0, 16);
+        document.getElementById('new-deadline').value = iso;
+    } else {
+        document.getElementById('new-deadline').value = '';
+    }
+
+    // 3. Заполняем видимость
+    const visValue = (task.visibility === 'common') ? 'common' : 'private';
+    document.querySelector(`input[name="visibility"][value="${visValue}"]`).checked = true;
+
+    // 4. Меняем кнопку MainButton
+    tg.MainButton.setText("СОХРАНИТЬ ИЗМЕНЕНИЯ");
+    tg.MainButton.show();
+
+    // ВАЖНО: Отвязываем старый обработчик (создание) и вешаем новый (обновление)
+    tg.MainButton.offClick(submitCreate);
+    tg.MainButton.onClick(submitUpdate);
+}
+
+async function submitUpdate() {
+    const title = document.getElementById('new-title').value;
+    const desc = document.getElementById('new-desc').value;
+    const visibility = document.querySelector('input[name="visibility"]:checked').value;
+    const dateVal = document.getElementById('new-deadline').value;
+
+    if(!title.trim()) return;
+
+    let deadline = null;
+    if (dateVal) deadline = new Date(dateVal).toISOString();
+
+    tg.MainButton.showProgress();
+
+    // Отправляем PATCH запрос
+    // Нам нужно добавить метод updateTask в api.js (см. ниже)
+     await api.updateTask(state.currentTask.id, {
+        title,
+        description: desc, // <-- Отправляем
+        visibility,
+        deadline
+    });
+
+    tg.HapticFeedback.notificationOccurred('success');
+    closeModals();
+
+    // Возвращаем кнопку в режим "Создать" для следующего раза
+    tg.MainButton.offClick(submitUpdate);
+
+    loadTasks();
+    tg.MainButton.hideProgress();
+}
 function renderSubtasks(subtasks) {
     const list = document.getElementById('subtasks-list');
     list.innerHTML = '';

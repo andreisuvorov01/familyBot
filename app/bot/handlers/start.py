@@ -96,15 +96,28 @@ async def set_role(callback: types.CallbackQuery):
 @router.callback_query(F.data == "family_create")
 async def create_family(callback: types.CallbackQuery):
     family_code = secrets.token_hex(3).upper()
+
     async with async_session_maker() as session:
         stmt = update(User).where(User.tg_id == callback.from_user.id).values(family_id=family_code)
         await session.execute(stmt)
         await session.commit()
 
+    # 1. Отправляем код (чтобы удобно скопировать)
     await callback.message.answer(
-        f"Ваша семья создана! \nПередайте этот код партнеру: <code>{family_code}</code>",
+        f"✅ <b>Семья создана!</b>\n"
+        f"Передайте этот код партнеру: <code>{family_code}</code>",
         parse_mode="HTML"
     )
+
+    # 2. Сразу даем кнопку для входа
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="📋 Открыть список дел",
+            web_app=WebAppInfo(url=settings.WEBAPP_URL)
+        )]
+    ])
+
+    await callback.message.answer("Готово! Можете приступать к задачам:", reply_markup=keyboard)
 
 
 # --- ЛОГИКА ПРИСОЕДИНЕНИЯ ---
@@ -120,30 +133,39 @@ async def process_family_code(message: types.Message, state: FSMContext, bot: Bo
     code = message.text.upper().strip()
 
     async with async_session_maker() as session:
-        # Ищем партнера, у которого такой же код
         stmt = select(User).where(User.family_id == code)
         partner = (await session.execute(stmt)).scalar_one_or_none()
 
         if not partner:
-            await message.answer("❌ Код не найден. Попробуйте еще раз или создайте свою семью.")
+            await message.answer("❌ Код не найден. Попробуйте еще раз.")
             return
 
         if partner.tg_id == message.from_user.id:
             await message.answer("🤔 Это ваш собственный код...")
             return
 
-        # Обновляем family_id текущего пользователя
+        # Обновляем family_id
         stmt_update = update(User).where(User.tg_id == message.from_user.id).values(family_id=code)
         await session.execute(stmt_update)
         await session.commit()
 
-        # Завершаем состояние
         await state.clear()
 
-        # Уведомляем обоих
-        await message.answer("🎉 Ура! Вы успешно связали аккаунты!")
+        # 1. Кнопка для ТЕКУЩЕГО пользователя
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="📋 Открыть список дел",
+                web_app=WebAppInfo(url=settings.WEBAPP_URL)
+            )]
+        ])
+
+        await message.answer("🎉 Вы успешно присоединились к семье!", reply_markup=keyboard)
+
+        # 2. Уведомление ПАРТНЕРУ
         try:
-            await bot.send_message(partner.tg_id,
-                                   f"🔔 Партнер @{message.from_user.username} присоединился к вашей семье!")
+            await bot.send_message(
+                partner.tg_id,
+                f"🔔 Партнер @{message.from_user.username} присоединился к вашей семье!"
+            )
         except Exception:
-            pass  # Если партнер заблокировал бота
+            pass

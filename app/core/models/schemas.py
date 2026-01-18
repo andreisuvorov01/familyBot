@@ -39,3 +39,5 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     status: str | None = None
     title: str | None = None
+    deadline: datetime | None = None
+    visibility: str | None = None
