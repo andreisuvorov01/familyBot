@@ -103,23 +103,28 @@ function renderList() {
             timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
         }
 
-        const el = document.createElement('div');
-        el.className = `bg-[var(--tg-theme-bg-color)] p-4 rounded-2xl mb-3 shadow-sm flex items-center gap-3 active:scale-[0.98] transition fade-in border-l-4 ${isCommon ? 'border-l-blue-400' : 'border-l-transparent'} ${isDone ? 'opacity-50' : ''}`;
+       const el = document.createElement('div');
+        // Используем bg-tg-main вместо bg-[var(...)]
+        el.className = `task-card bg-tg-main p-4 rounded-2xl mb-3 shadow-sm flex items-center gap-3 active:scale-[0.98] transition fade-in border-l-4 ${isCommon ? 'border-l-blue-400' : 'border-l-transparent'} ${isDone ? 'opacity-50 grayscale' : ''}`;
 
         el.innerHTML = `
             <div class="w-6 h-6 rounded-full border-2 ${isDone ? 'bg-green-500 border-green-500' : 'border-gray-300'} grid place-content-center shrink-0">
                 ${isDone ? '<i class="fa-solid fa-check text-white text-[10px]"></i>' : ''}
             </div>
+
             <div class="flex-1 min-w-0">
                 <div class="flex items-center mb-1">
                     ${timeBadge}
-                    <h3 class="font-medium truncate text-sm ${isDone ? 'line-through' : ''}">${task.title}</h3>
+                    <h3 class="font-medium truncate text-sm text-tg-main ${isDone ? 'line-through' : ''}">${task.title}</h3>
                 </div>
-                <div class="flex items-center gap-3 text-[10px] opacity-60">
-                    ${isCommon ? '<span><i class="fa-solid fa-users"></i> Семья</span>' : '<span><i class="fa-solid fa-lock"></i> Личное</span>'}
+
+                <div class="flex items-center gap-3 text-[10px] text-tg-hint">
+                    ${isCommon ? '<span class="flex items-center gap-1"><i class="fa-solid fa-users"></i> Семья</span>' : '<span class="flex items-center gap-1"><i class="fa-solid fa-lock"></i> Личное</span>'}
+                    ${task.repeat_rule ? '<span class="flex items-center gap-1"><i class="fa-solid fa-rotate"></i></span>' : ''}
                     ${task.subtasks.length > 0 ? `<span>• ${task.subtasks.filter(s => s.is_done).length}/${task.subtasks.length}</span>` : ''}
                 </div>
             </div>
+            <i class="fa-solid fa-chevron-right text-tg-hint opacity-30 text-xs"></i>
         `;
         el.onclick = () => openDetail(task);
         list.appendChild(el);
@@ -394,15 +399,23 @@ async function deleteTask() {
 function setFilter(type) {
     state.filter = type;
     tg.HapticFeedback.selectionChanged();
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+
+    // Находим все кнопки
+    const buttons = document.querySelectorAll('.tab-btn');
+
+    buttons.forEach(btn => {
+        // Проверяем dataset
         if(btn.dataset.filter === type) {
+            // АКТИВНАЯ КНОПКА
+            btn.classList.add('active', 'bg-tg-button', 'text-white', 'shadow-md');
             btn.classList.remove('opacity-60');
-            btn.classList.add('bg-[var(--tg-theme-button-color)]', 'text-white', 'shadow-md');
         } else {
+            // НЕАКТИВНАЯ КНОПКА
+            btn.classList.remove('active', 'bg-tg-button', 'text-white', 'shadow-md');
             btn.classList.add('opacity-60');
-            btn.classList.remove('bg-[var(--tg-theme-button-color)]', 'text-white', 'shadow-md');
         }
     });
+
     renderList();
 }
 
