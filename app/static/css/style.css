@@ -301,3 +301,88 @@ body.is-ios .task-card { box-shadow: none; } /* Flat on iOS list */
     opacity: 0.8;
 }
 .hidden { display: none !important; }
+.form-group {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden; /* Чтобы дети не вылезали за скругление */
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Легкая тень */
+}
+
+/* Строка внутри группы */
+.form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 50px; /* Фиксированная высота для аккуратности */
+    border-bottom: 1px solid var(--divider);
+    position: relative;
+}
+.form-row:last-child { border-bottom: none; }
+
+/* Инпуты внутри строк (прозрачные, без рамок) */
+.form-row input,
+.form-row select {
+    background: transparent !important;
+    border: none !important;
+    text-align: right; /* Значение справа, как в iOS */
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100%;
+    font-size: 16px !important;
+    color: var(--accent); /* Синий цвет для значений */
+    direction: ltr; /* Чтобы дата не прыгала */
+}
+
+/* Лейблы слева */
+.form-label {
+    font-size: 16px;
+    color: var(--text-main);
+    font-weight: 500;
+    flex-shrink: 0; /* Чтобы текст не сжимался */
+}
+
+/* Большие поля (Заголовок/Описание) */
+.input-standalone {
+    width: 100%;
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 17px !important;
+    color: var(--text-main);
+    border: 1px solid transparent;
+    transition: 0.2s;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.input-standalone:focus {
+    border-color: var(--accent);
+    background-color: var(--bg-card);
+}
+
+/* Видимость (Segmented Control) */
+.segment-control {
+    display: flex;
+    background-color: rgba(118, 118, 128, 0.12); /* Серый трек */
+    padding: 3px;
+    border-radius: 9px;
+    margin-bottom: 24px;
+}
+.segment-option {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 7px;
+    color: var(--text-main);
+    transition: 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+/* Скрытый радио-инпут управляет стилем соседа */
+input[type="radio"]:checked + .segment-option {
+    background-color: var(--bg-card);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    font-weight: 600;
+}

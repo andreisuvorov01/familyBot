@@ -55,27 +55,59 @@
     <div id="overlay" class="modal-overlay"></div>
 
     <!-- Create Modal -->
-    <div id="create-modal" class="bottom-sheet">
+        <!-- Create Modal -->
+    <div id="create-modal" class="bottom-sheet" style="background-color: var(--bg-page);"> <!-- Фон модалки чуть серее -->
         <div class="sheet-handle"></div>
-        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px; text-align: center;">Новая задача</h2>
+        <h2 class="text-xl font-bold mb-5 text-center text-main">Новая задача</h2>
 
-        <input type="text" id="new-title" placeholder="Что нужно сделать?" style="font-weight: 600;">
-        <textarea id="new-desc" rows="3" placeholder="Заметки (опционально)"></textarea>
+        <!-- 1. Название (Большое поле) -->
+        <input type="text" id="new-title" class="input-standalone" placeholder="Название задачи" style="font-weight: 600;">
 
-        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-            <div style="flex: 1;">
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Дата</label>
-                <input type="datetime-local" id="new-deadline" style="margin-top: 6px;">
+        <!-- 2. Описание (Большое поле) -->
+        <textarea id="new-desc" rows="3" class="input-standalone" style="resize: none; min-height: 80px;" placeholder="Заметки"></textarea>
+
+        <!-- 3. Настройки (Группа) -->
+        <div class="form-group">
+            <!-- Дата -->
+            <div class="form-row">
+                <span class="form-label">Дата</span>
+                <!-- input занимает всё оставшееся место -->
+                <div style="flex: 1; margin-left: 10px;">
+                    <input type="datetime-local" id="new-deadline">
+                </div>
             </div>
-            <div style="flex: 1;">
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Повтор</label>
-                <select id="new-repeat" style="margin-top: 6px;">
-                    <option value="">Нет</option>
-                    <option value="daily">Ежедневно</option>
-                    <option value="weekly">Еженедельно</option>
-                </select>
+
+            <!-- Повтор -->
+            <div class="form-row">
+                <span class="form-label">Повтор</span>
+                <div style="flex: 1; margin-left: 10px;">
+                    <select id="new-repeat">
+                        <option value="">Нет</option>
+                        <option value="daily">Каждый день</option>
+                        <option value="weekly">Каждую неделю</option>
+                        <option value="monthly">Каждый месяц</option>
+                    </select>
+                </div>
             </div>
         </div>
+
+        <!-- 4. Видимость (Segmented Control) -->
+        <div class="segment-control">
+            <label style="flex: 1; cursor: pointer;">
+                <input type="radio" name="visibility" value="common" checked hidden>
+                <div class="segment-option">
+                    <i class="fa-solid fa-users"></i> Семья
+                </div>
+            </label>
+            <label style="flex: 1; cursor: pointer;">
+                <input type="radio" name="visibility" value="private" hidden>
+                <div class="segment-option">
+                    <i class="fa-solid fa-lock"></i> Личное
+                </div>
+            </label>
+        </div>
+    </div>
+
 
         <div class="visibility-selector">
             <label style="flex:1; cursor: pointer;">
