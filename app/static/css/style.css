@@ -232,65 +232,71 @@ body.is-ios .task-card { box-shadow: none; } /* Flat on iOS list */
 .calendar-grid {
     display: grid !important;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px; /* Чуть больше отступ между днями */
+    gap: 4px; /* Компактные отступы */
     margin-bottom: 20px;
 }
 
 .calendar-day {
-    /* Делаем ячейку выше, чтобы влезли точки */
-    min-height: 48px;
-    aspect-ratio: 0.9; /* Чуть вытянутая по вертикали */
+    /* Идеальный круг */
+    aspect-ratio: 1;
+    border-radius: 50%;
 
-    border-radius: 12px;
     background-color: var(--bg-card);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Цифра сверху */
-    padding-top: 6px;
-    font-size: 14px;
-    font-weight: 500;
+    justify-content: center; /* Центрируем всё */
+
+    font-size: 15px;
+    font-weight: 400;
     color: var(--text-primary);
-    position: relative; /* Для абсолютного позиционирования точек, если нужно */
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.calendar-day:active { transform: scale(0.9); }
+
+/* Цифра дня (немного поднимаем, чтобы точки влезли) */
+.calendar-day span {
+    margin-bottom: 2px; /* Место под точки */
+    line-height: 1;
 }
 
 /* Контейнер точек */
 .task-dots {
     display: flex;
     gap: 3px;
-    margin-top: 6px; /* Отступ от цифры */
-    justify-content: center;
-    flex-wrap: wrap; /* Если точек много - перенос на след. строку */
-    width: 80%; /* Ограничиваем ширину */
+    height: 4px; /* Фиксированная высота */
 }
 
 /* Сами точки */
 .dot {
-    width: 5px; height: 5px; /* Чуть крупнее, чтобы было видно */
+    width: 4px; height: 4px;
     border-radius: 50%;
-    background-color: var(--accent);
-    flex-shrink: 0; /* Запрещаем сжиматься */
+    background-color: var(--accent); /* Синий по умолчанию */
 }
 
-/* Цвета точек */
-.dot.private { background-color: var(--text-hint); }
-.dot.late { background-color: #ef4444; }
+.dot.private { background-color: var(--text-hint); } /* Серый */
+.dot.late { background-color: #ef4444; } /* Красный */
 
-/* Стили активного дня */
+/* === СОСТОЯНИЯ === */
+
+/* Сегодняшний день (Только текст синий, без фона) */
 .calendar-day.today {
     color: var(--accent);
-    font-weight: 800;
-    border: 1px solid var(--accent); /* Рамка вместо фона, чтобы точки были видны */
+    font-weight: 700;
 }
 
+/* Выбранный день (Синий круг) */
 .calendar-day.selected {
     background-color: var(--accent);
     color: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    font-weight: 600;
 }
 
-/* Инверсия цвета точек на выбранном дне */
+/* ВАЖНО: Делаем точки белыми на синем фоне */
 .calendar-day.selected .dot {
     background-color: white !important;
-    opacity: 0.9;
+    opacity: 0.8;
 }
