@@ -115,10 +115,10 @@ async def create_task(
 
 @router.patch("/{task_id}")
 async def update_task(
-        task_id: int,
-        updates: TaskUpdate,
-        user: User = Depends(get_current_user),
-        session: AsyncSession = Depends(get_async_session)
+    task_id: int,
+    updates: TaskUpdate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
 ):
     stmt = select(Task).where(Task.id == task_id, Task.family_id == user.family_id)
     task = (await session.execute(stmt)).scalar_one_or_none()
@@ -127,6 +127,7 @@ async def update_task(
     old_status = task.status
 
     # Обновление полей
+    if updates.status: task.status = updates.status
     if updates.title: task.title = updates.title
     if updates.description: task.description = updates.description
     if updates.visibility:
