@@ -4,43 +4,40 @@ tg.expand();
 // Глобальное состояние
 let state = {
     tasks: [],
-    filter: 'all', // all | common | personal
+    filter: 'all',
     currentTask: null,
-    view: 'list', // list | calendar
+    view: 'list',
     calendarDate: new Date(),
     selectedDateStr: null
 };
 
-// --- Инициализация ---
+// --- INIT ---
 async function init() {
     setupTheme();
     setupEventListeners();
     await loadTasks();
-    setInterval(loadTasks, 15000); // Авто-обновление
+    setInterval(loadTasks, 15000); // Live update
 }
 
 function setupTheme() {
-    // 1. Детекция платформы
-    const platform = tg.platform; // 'ios', 'android', 'macos', 'tdesktop'...
-    document.body.className = ''; // Сброс
-
+    // Детекция платформы для стилей
+    const platform = tg.platform;
     if (['ios', 'macos'].includes(platform)) {
         document.body.classList.add('is-ios');
     } else {
         document.body.classList.add('is-android');
     }
 
-    // 2. Детекция темной темы (для ручной коррекции цветов iOS)
-    if (tg.colorScheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
+    // Принудительно ставим цвет фона из CSS переменной
+    // (Telegram иногда перебивает своим, но наш CSS важнее)
+    document.body.style.backgroundColor = 'var(--bg-page)';
 
-    // 3. Аватарка
+    // Аватар
     const user = tg.initDataUnsafe?.user;
     if (user) {
         const avatarEl = document.getElementById('user-avatar');
         if (user.photo_url) {
-            avatarEl.innerHTML = `<img src="${user.photo_url}" class="w-full h-full object-cover">`;
+            avatarEl.innerHTML = `<img src="${user.photo_url}" style="width:100%; height:100%; object-fit:cover;">`;
             avatarEl.style.background = 'none';
         } else {
             document.getElementById('avatar-letter').innerText = user.first_name ? user.first_name[0] : 'U';
@@ -54,11 +51,11 @@ async function loadTasks() {
         renderList();
         if (state.view === 'calendar') renderCalendar();
     } catch (e) {
-        console.error("Load tasks error:", e);
+        console.error(e);
     }
 }
 
-// === ЛОГИКА ДАТ (UTC FIX) ===
+// === DATE LOGIC ===
 function checkTaskOnDate(task, targetDate) {
     if (!task.deadline) return false;
 
@@ -79,7 +76,7 @@ function checkTaskOnDate(task, targetDate) {
     return false;
 }
 
-// --- Переключение Видов ---
+// --- VIEWS ---
 function toggleView() {
     state.view = state.view === 'list' ? 'calendar' : 'list';
     const wrapper = document.getElementById('calendar-wrapper');
@@ -87,16 +84,16 @@ function toggleView() {
 
     if (state.view === 'calendar') {
         wrapper.classList.remove('hidden');
-        btn.innerHTML = '<i class="fa-solid fa-list"></i> Список';
+        btn.innerHTML = 'Список';
         renderCalendar();
     } else {
         wrapper.classList.add('hidden');
-        btn.innerHTML = '<i class="fa-regular fa-calendar"></i> Календарь';
+        btn.innerHTML = 'Календарь';
         resetCalendarFilter();
     }
 }
 
-// --- Рендеринг Списка ---
+// --- RENDER LIST ---
 function renderList() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
@@ -114,15 +111,19 @@ function renderList() {
     }
 
     if (filtered.length === 0) {
-        list.innerHTML = `<div class="text-center pt-20 opacity-40"><p>Нет задач</p></div>`;
+        list.innerHTML = `
+            <div style="text-align: center; padding-top: 80px; opacity: 0.5;">
+                <i class="fa-solid fa-mug-hot" style="font-size: 48px; margin-bottom: 16px; color: var(--text-hint);"></i>
+                <p style="font-size: 16px; font-weight: 500; color: var(--text-hint);">Нет задач</p>
+            </div>`;
         return;
     }
 
-    filtered.forEach(task => {
+    filtered.forEach((task, index) => {
         const isDone = task.status === 'done';
         const isCommon = task.visibility === 'common';
 
-        // --- ВИЗУАЛИЗАЦИЯ ДАТЫ ---
+        // Виртуальная дата для повтора
         let displayDeadlineStr = task.deadline;
         if (state.selectedDateStr && task.repeat_rule && task.deadline) {
             let origStr = task.deadline.endsWith('Z') ? task.deadline : task.deadline + 'Z';
@@ -134,49 +135,60 @@ function renderList() {
 
         let timeBadge = '';
         if (displayDeadlineStr) {
-            let dStr = displayDeadlineStr;
-            if (!dStr.endsWith('Z')) dStr += 'Z';
+            let dStr = displayDeadlineStr.endsWith('Z') ? displayDeadlineStr : displayDeadlineStr + 'Z';
             const d = new Date(dStr);
             const now = new Date();
-
             let isLate = now > d && !isDone;
             if (state.selectedDateStr && new Date(state.selectedDateStr) > now) isLate = false;
 
-            const timeStr = d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'});
-            const colorClass = isLate ? 'text-red-500 font-bold bg-red-50' : 'text-tg-hint bg-tg-secondary';
-            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2 flex items-center gap-1"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
+            const timeStr = d.toLocaleDateString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+            const color = isLate ? '#ff3b30' : 'var(--text-hint)';
+            const weight = isLate ? '700' : '500';
+            const icon = isLate ? 'fa-solid fa-fire' : 'fa-regular fa-clock';
+            timeBadge = `<span style="color: ${color}; font-weight: ${weight}; font-size: 12px; display: flex; align-items: center; gap: 4px; margin-right: 8px;">
+                <i class="${icon}"></i> ${timeStr}
+            </span>`;
         }
 
-        const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate text-xs opacity-50 ml-2 text-tg-link"></i>' : '';
+        const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate" style="font-size: 12px; opacity: 0.6; margin-left: 6px;"></i>' : '';
+        const iconType = isCommon ? '<i class="fa-solid fa-users"></i>' : '<i class="fa-solid fa-lock"></i>';
+        const borderLeft = isCommon ? '4px solid var(--accent)' : '4px solid transparent';
 
         const el = document.createElement('div');
-        // Используем новые семантические классы
-        el.className = `task-card flex items-center gap-3 active:scale-[0.98] transition fade-in border-l-4 ${isCommon ? 'border-l-[var(--accent)]' : 'border-l-transparent'} ${isDone ? 'opacity-50 grayscale' : ''}`;
+        el.className = 'task-card';
+        // Анимация каскадом
+        el.classList.add('animate-enter');
+        el.style.animationDelay = `${index * 0.05}s`;
+
+        el.style.borderLeft = borderLeft;
+        if (isDone) el.style.opacity = '0.6';
 
         el.innerHTML = `
-            <div class="w-6 h-6 rounded-full border-2 ${isDone ? 'bg-green-500 border-green-500' : 'border-[var(--text-hint)]'} grid place-content-center shrink-0">
-                ${isDone ? '<i class="fa-solid fa-check text-white text-[10px]"></i>' : ''}
+            <div style="width: 24px; height: 24px; border: 2px solid ${isDone ? '#34c759' : 'var(--text-hint)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${isDone ? '#34c759' : 'transparent'}; flex-shrink: 0;">
+                ${isDone ? '<i class="fa-solid fa-check" style="color: white; font-size: 12px;"></i>' : ''}
             </div>
 
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center mb-1">
+            <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
                     ${timeBadge}
-                    <h3 class="font-medium truncate text-sm text-main ${isDone ? 'line-through' : ''}">${task.title} ${repeatIcon}</h3>
+                    <div style="font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: ${isDone ? 'line-through' : 'none'}; color: var(--text-primary);">
+                        ${task.title} ${repeatIcon}
+                    </div>
                 </div>
-                <div class="flex items-center gap-3 text-[10px] text-hint">
-                    ${isCommon ? '<span><i class="fa-solid fa-users"></i> Семья</span>' : '<span><i class="fa-solid fa-lock"></i> Личное</span>'}
+                <div style="font-size: 13px; color: var(--text-hint); display: flex; gap: 10px;">
+                    <span style="display: flex; align-items: center; gap: 4px;">${iconType} ${isCommon ? 'Семья' : 'Личное'}</span>
                     ${task.subtasks.length > 0 ? `<span>• ${task.subtasks.filter(s => s.is_done).length}/${task.subtasks.length}</span>` : ''}
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-hint opacity-30 text-xs"></i>
+            <i class="fa-solid fa-chevron-right" style="color: var(--text-hint); opacity: 0.3; font-size: 14px;"></i>
         `;
+
         el.onclick = () => openDetail(task);
         list.appendChild(el);
     });
 }
 
-// --- Календарь ---
-
+// --- CALENDAR ---
 function changeMonth(delta) {
     state.calendarDate.setMonth(state.calendarDate.getMonth() + delta);
     renderCalendar();
@@ -186,7 +198,6 @@ function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // Очистка
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
     oldCells.forEach(c => c.remove());
 
@@ -245,7 +256,7 @@ function renderCalendar() {
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
     state.selectedDateStr = dateStr;
-    document.getElementById('reset-filter-btn').style.display = 'block';
+    document.getElementById('reset-filter-btn').style.display = 'inline-block';
     renderCalendar();
     renderList();
 }
@@ -257,74 +268,10 @@ function resetCalendarFilter() {
     renderList();
 }
 
-// --- Модалки ---
-
-function openDetail(task) {
-    state.currentTask = task;
-    const isDone = task.status === 'done';
-
-    document.getElementById('detail-title').innerText = task.title;
-    document.getElementById('detail-title').className = `text-xl font-bold leading-tight mr-2 flex-1 text-tg-main ${isDone ? 'line-through opacity-50' : ''}`;
-
-    const descEl = document.getElementById('detail-desc');
-    if (descEl) {
-        if (task.description && task.description.trim()) {
-            descEl.innerText = task.description;
-            descEl.classList.remove('opacity-50', 'italic');
-        } else {
-            descEl.innerText = "Нет описания";
-            descEl.classList.add('opacity-50', 'italic');
-        }
-    }
-
-    const btn = document.getElementById('btn-status');
-    if (isDone) {
-        btn.innerHTML = '<i class="fa-solid fa-rotate-left mr-2"></i> Вернуть';
-        btn.className = 'w-full py-3 rounded-xl font-semibold bg-tg-secondary text-tg-main shadow-sm active:scale-95 transition';
-    } else {
-        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Завершить';
-        btn.className = 'w-full py-3 rounded-xl font-semibold bg-green-500 text-white shadow-lg active:scale-95 transition';
-    }
-
-    // ВАЖНО: Исправленный обработчик
-    btn.onclick = () => toggleTaskStatus(task);
-
-    renderSubtasks(task.subtasks);
-
-    document.getElementById('detail-modal').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-    tg.BackButton.show();
-}
-
-// --- Status Toggle (FIXED) ---
-async function toggleTaskStatus(task) {
-    const targetTask = task || state.currentTask;
-    if (!targetTask) return;
-
-    const newStatus = targetTask.status === 'done' ? 'pending' : 'done';
-
-    // Optimistic UI update
-    targetTask.status = newStatus;
-    renderList();
-    closeModals();
-    tg.HapticFeedback.notificationOccurred('success');
-
-    try {
-        await api.toggleTaskStatus(targetTask.id, newStatus);
-    } catch (e) {
-        alert("Ошибка сети");
-        // Rollback
-        targetTask.status = targetTask.status === 'done' ? 'pending' : 'done';
-        renderList();
-    } finally {
-        loadTasks(); // Sync with server
-    }
-}
-
-// --- Other Logic ---
+// --- MODALS & FORMS ---
 
 function openCreateModal() {
-    tg.HapticFeedback.impactOccurred('light');
+    tg.HapticFeedback.impactOccurred('medium');
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
     document.getElementById('new-deadline').value = '';
@@ -332,6 +279,8 @@ function openCreateModal() {
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+
+    setTimeout(() => document.getElementById('new-title').focus(), 300); // Focus after animation
 
     tg.MainButton.setText("СОЗДАТЬ");
     tg.MainButton.show();
@@ -368,6 +317,45 @@ function openEditMode() {
     tg.MainButton.offClick(submitCreate);
     tg.MainButton.onClick(submitUpdate);
 }
+
+function openDetail(task) {
+    state.currentTask = task;
+    const isDone = task.status === 'done';
+
+    document.getElementById('detail-title').innerText = task.title;
+    const titleEl = document.getElementById('detail-title');
+    titleEl.style.textDecoration = isDone ? 'line-through' : 'none';
+    titleEl.style.opacity = isDone ? '0.5' : '1';
+
+    const descEl = document.getElementById('detail-desc');
+    if (task.description && task.description.trim()) {
+        descEl.innerText = task.description;
+        descEl.style.opacity = '0.9';
+    } else {
+        descEl.innerText = "Нет описания";
+        descEl.style.opacity = '0.5';
+    }
+
+    const btn = document.getElementById('btn-status');
+    if (isDone) {
+        btn.innerHTML = '<i class="fa-solid fa-rotate-left mr-2"></i> Вернуть';
+        btn.style.backgroundColor = 'var(--bg-page)';
+        btn.style.color = 'var(--text-main)';
+    } else {
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Завершить';
+        btn.style.backgroundColor = 'var(--accent)';
+        btn.style.color = 'white';
+    }
+    btn.onclick = () => toggleTaskStatus(task);
+
+    renderSubtasks(task.subtasks);
+
+    document.getElementById('detail-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    tg.BackButton.show();
+}
+
+// --- ACTIONS ---
 
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
@@ -419,6 +407,28 @@ async function submitUpdate() {
     tg.MainButton.hideProgress();
 }
 
+async function toggleTaskStatus(task) {
+    const targetTask = task || state.currentTask;
+    if (!targetTask) return;
+
+    const newStatus = targetTask.status === 'done' ? 'pending' : 'done';
+
+    targetTask.status = newStatus;
+    renderList();
+    closeModals();
+    tg.HapticFeedback.notificationOccurred('success');
+
+    try {
+        await api.toggleTaskStatus(targetTask.id, newStatus);
+    } catch (e) {
+        alert("Ошибка");
+        targetTask.status = targetTask.status === 'done' ? 'pending' : 'done';
+        renderList();
+    } finally {
+        loadTasks();
+    }
+}
+
 async function addSubtask() {
     const input = document.getElementById('new-subtask');
     if(!input.value.trim()) return;
@@ -445,10 +455,12 @@ function renderSubtasks(subtasks) {
     list.innerHTML = '';
     subtasks.forEach(sub => {
         const el = document.createElement('div');
-        el.className = 'flex items-center gap-3 py-2 border-b border-tg-hint/10 last:border-0';
+        el.className = 'flex items-center gap-3 py-3 border-b border-[var(--text-hint)]/10 last:border-0';
+        el.style.borderBottom = '1px solid rgba(128,128,128,0.1)';
+
         el.innerHTML = `
             <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''}>
-            <span class="text-sm flex-1 text-tg-main ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
+            <span class="text-sm flex-1 text-main ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
         `;
         el.querySelector('input').onchange = (e) => {
             api.toggleSubtask(sub.id, e.target.checked);
@@ -459,18 +471,13 @@ function renderSubtasks(subtasks) {
     });
 }
 
+// --- UTILS ---
 function setFilter(type) {
     state.filter = type;
     tg.HapticFeedback.selectionChanged();
-
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        if(btn.dataset.filter === type) {
-            btn.classList.add('active', 'bg-tg-button', 'text-white', 'shadow-md');
-            btn.classList.remove('opacity-60');
-        } else {
-            btn.classList.remove('active', 'bg-tg-button', 'text-white', 'shadow-md');
-            btn.classList.add('opacity-60');
-        }
+        if(btn.dataset.filter === type) btn.classList.add('active');
+        else btn.classList.remove('active');
     });
     renderList();
 }
@@ -480,8 +487,7 @@ function closeModals() {
     document.getElementById('overlay').classList.remove('active');
     tg.MainButton.hide();
     tg.BackButton.hide();
-    tg.MainButton.offClick(submitCreate);
-    tg.MainButton.offClick(submitUpdate);
+    document.activeElement.blur();
 }
 
 function setupEventListeners() {

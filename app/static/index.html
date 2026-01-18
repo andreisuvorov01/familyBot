@@ -5,48 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Tasks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=12" rel="stylesheet">
+    <link href="/static/css/style.css?v=25" rel="stylesheet">
 </head>
 <body>
 
     <div class="app-container">
         <!-- Header -->
-        <header class="flex justify-between items-center mb-4">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <div>
-                <h1 class="text-3xl font-bold tracking-tight text-main">Задачи</h1>
-                <button onclick="toggleView()" id="view-toggle-btn" class="text-sm font-medium text-accent mt-1">
-                    <i class="fa-regular fa-calendar"></i> Календарь
+                <h1 style="font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Задачи</h1>
+                <button onclick="toggleView()" id="view-toggle-btn" style="color: var(--accent); font-weight: 600; font-size: 15px; background: none; margin-top: 4px;">
+                    Календарь
                 </button>
             </div>
-            <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-b from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold overflow-hidden">
-                <span id="avatar-letter">?</span>
+            <div id="user-avatar" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #8b5cf6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <span id="avatar-letter" style="font-size: 18px;">?</span>
             </div>
         </header>
 
         <!-- Tabs -->
         <div class="tab-container">
-            <button class="tab-btn active" data-filter="all">Все</button>
-            <button class="tab-btn" data-filter="personal">Личные</button>
-            <button class="tab-btn" data-filter="common">Общие</button>
+            <div class="tab-btn active" onclick="setFilter('all')" data-filter="all">Все</div>
+            <div class="tab-btn" onclick="setFilter('personal')" data-filter="personal">Личные</div>
+            <div class="tab-btn" onclick="setFilter('common')" data-filter="common">Общие</div>
         </div>
 
         <!-- Calendar -->
-        <div id="calendar-wrapper" class="hidden mb-6 fade-in">
-            <div class="flex justify-between items-center mb-4 px-2">
-                <button onclick="changeMonth(-1)" class="p-2 text-accent"><i class="fa-solid fa-chevron-left"></i></button>
-                <h2 id="calendar-month-year" class="font-semibold text-lg capitalize text-main"></h2>
-                <button onclick="changeMonth(1)" class="p-2 text-accent"><i class="fa-solid fa-chevron-right"></i></button>
+        <div id="calendar-wrapper" class="hidden fade-in" style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 8px;">
+                <button onclick="changeMonth(-1)" style="color: var(--accent); font-size: 20px;"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2 id="calendar-month-year" style="font-size: 17px; font-weight: 600; text-transform: capitalize;"></h2>
+                <button onclick="changeMonth(1)" style="color: var(--accent); font-size: 20px;"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
-            <div class="flex justify-center mt-2">
-                <button onclick="resetCalendarFilter()" class="text-xs text-accent font-medium" id="reset-filter-btn" style="display: none;">Показать все</button>
+            <div style="text-align: center; margin-top: 12px;">
+                <button onclick="resetCalendarFilter()" id="reset-filter-btn" style="color: var(--accent); font-size: 15px; font-weight: 500; display: none;">Сбросить фильтр</button>
             </div>
         </div>
 
         <!-- List -->
-        <div id="task-list" class="pb-20"></div>
+        <div id="task-list"></div>
     </div>
 
     <!-- FAB -->
@@ -58,38 +57,34 @@
     <!-- Create Modal -->
     <div id="create-modal" class="bottom-sheet">
         <div class="sheet-handle"></div>
-        <h2 class="text-xl font-bold mb-5 text-center text-main">Новая задача</h2>
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px; text-align: center;">Новая задача</h2>
 
-        <input type="text" id="new-title" class="mb-3 font-medium" placeholder="Название">
-        <textarea id="new-desc" rows="3" class="mb-4 resize-none" placeholder="Заметки (опционально)"></textarea>
+        <input type="text" id="new-title" placeholder="Что нужно сделать?" style="font-weight: 600;">
+        <textarea id="new-desc" rows="3" placeholder="Заметки (опционально)"></textarea>
 
-        <div class="flex gap-3 mb-4">
-            <div class="flex-1">
-                <label class="block text-xs font-medium text-hint mb-1 ml-1">ДАТА</label>
-                <input type="datetime-local" id="new-deadline">
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Дата</label>
+                <input type="datetime-local" id="new-deadline" style="margin-top: 6px;">
             </div>
-            <div class="flex-1">
-                <label class="block text-xs font-medium text-hint mb-1 ml-1">ПОВТОР</label>
-                <select id="new-repeat">
+            <div style="flex: 1;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Повтор</label>
+                <select id="new-repeat" style="margin-top: 6px;">
                     <option value="">Нет</option>
-                    <option value="daily">День</option>
-                    <option value="weekly">Неделя</option>
+                    <option value="daily">Ежедневно</option>
+                    <option value="weekly">Еженедельно</option>
                 </select>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
-            <label class="cursor-pointer relative">
-                <input type="radio" name="visibility" value="common" checked class="hidden">
-                <div class="p-3 rounded-xl text-center font-medium text-sm transition bg-[var(--bg-card)] text-main border border-transparent">
-                    Семья
-                </div>
+        <div class="visibility-selector">
+            <label style="flex:1; cursor: pointer;">
+                <input type="radio" name="visibility" value="common" checked hidden>
+                <div class="visibility-option"><i class="fa-solid fa-users"></i> Семья</div>
             </label>
-            <label class="cursor-pointer relative">
-                <input type="radio" name="visibility" value="private" class="hidden">
-                <div class="p-3 rounded-xl text-center font-medium text-sm transition bg-[var(--bg-card)] text-main border border-transparent">
-                    Личное
-                </div>
+            <label style="flex:1; cursor: pointer;">
+                <input type="radio" name="visibility" value="private" hidden>
+                <div class="visibility-option"><i class="fa-solid fa-lock"></i> Личное</div>
             </label>
         </div>
     </div>
@@ -97,27 +92,29 @@
     <!-- Detail Modal -->
     <div id="detail-modal" class="bottom-sheet">
         <div class="sheet-handle"></div>
-        <div class="flex justify-between items-start mb-5">
-            <h2 id="detail-title" class="text-2xl font-bold leading-tight mr-2 flex-1 break-words text-main"></h2>
-            <div class="flex gap-4 shrink-0">
-                <button onclick="openEditMode()" class="text-accent text-lg"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteTask()" class="text-red-500 text-lg"><i class="fa-solid fa-trash"></i></button>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+            <h2 id="detail-title" style="font-size: 24px; font-weight: 800; margin: 0; flex: 1; line-height: 1.2;"></h2>
+            <div style="display: flex; gap: 16px;">
+                <button onclick="openEditMode()" style="font-size: 20px; color: var(--accent);"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteTask()" style="font-size: 20px; color: #ef4444;"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
 
-        <div class="mb-6">
-            <p id="detail-desc" class="text-base text-main whitespace-pre-wrap leading-relaxed opacity-80">Нет описания</p>
+        <div style="background-color: var(--bg-page); padding: 16px; border-radius: 16px; margin-bottom: 24px;">
+            <p id="detail-desc" style="font-size: 16px; white-space: pre-wrap; margin: 0; opacity: 0.9; line-height: 1.5;"></p>
         </div>
 
-        <div class="mb-6">
-            <div id="subtasks-list" class="space-y-0 border-t border-[var(--text-hint)]/10"></div>
-            <div class="flex gap-2 mt-4">
-                <input type="text" id="new-subtask" placeholder="Добавить пункт..." class="flex-1">
-                <button onclick="addSubtask()" class="bg-[var(--accent)] text-white w-10 h-10 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
+        <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Чек-лист</h3>
+            <div id="subtasks-list"></div>
+
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+                <input type="text" id="new-subtask" placeholder="Добавить шаг..." style="margin-bottom: 0;">
+                <button onclick="addSubtask()" style="background-color: var(--accent); color: white; width: 48px; border-radius: 12px; display: grid; place-content: center;"><i class="fa-solid fa-arrow-up"></i></button>
             </div>
         </div>
 
-        <button id="btn-status" class="w-full py-3.5 rounded-xl font-bold text-white shadow-lg bg-[var(--accent)]">Завершить</button>
+        <button id="btn-status" style="width: 100%; padding: 16px; background-color: var(--accent); color: white; border-radius: 16px; font-weight: 700; font-size: 17px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Завершить</button>
     </div>
 
     <script src="/static/js/api.js"></script>

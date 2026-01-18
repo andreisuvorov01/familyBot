@@ -1,175 +1,237 @@
-/* === BASE VARIABLES === */
+/* === 1. CORE VARIABLES (Telegram Adaptive) === */
 :root {
-    /* Стандартные переменные (Android/Desktop) */
-    --bg-page: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    --bg-page: var(--tg-theme-secondary-bg-color, #f1f1f2);
     --bg-card: var(--tg-theme-bg-color, #ffffff);
     --text-primary: var(--tg-theme-text-color, #000000);
-    --text-hint: var(--tg-theme-hint-color, #888888);
-    --accent: var(--tg-theme-button-color, #3390ec);
+    --text-secondary: var(--tg-theme-hint-color, #8e8e93);
+    --accent: var(--tg-theme-button-color, #007aff);
     --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --divider: rgba(0, 0, 0, 0.1);
 
+    /* Physics & Geometry */
+    --spring-easing: cubic-bezier(0.175, 0.885, 0.32, 1.1); /* Пружина */
+    --smooth-easing: cubic-bezier(0.25, 0.1, 0.25, 1);
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 20px);
-    --radius-card: 16px;
-    --radius-input: 12px;
 }
 
-/* === iOS SPECIFIC OVERRIDES === */
-/* Apple "Cupertino" Look */
-body.is-ios {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-    letter-spacing: -0.02em; /* Плотный текст как в iOS */
-
-    /* Светлая тема iOS (жесткие стандарты) */
-    --bg-page: #F2F2F7; /* System Grouped Background */
-    --bg-card: #FFFFFF;
-    --text-primary: #000000;
-    --text-hint: #8E8E93;
-    --accent: #007AFF; /* Apple Blue */
-    --radius-card: 14px; /* iOS 15+ style */
+/* Dark Mode Adjustments */
+@media (prefers-color-scheme: dark) {
+    :root { --divider: rgba(255, 255, 255, 0.15); }
 }
 
-/* Темная тема iOS */
-body.is-ios.dark-mode {
-    --bg-page: #000000; /* System Grouped Background Dark */
-    --bg-card: #1C1C1E; /* System Gray 6 */
-    --text-primary: #FFFFFF;
-    --text-hint: #98989D;
-    --accent: #0A84FF; /* Dark Mode Blue */
-}
-
-/* === RESET === */
+/* === 2. RESET & BASE === */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; /* Важно для iOS, чтобы не скроллился body */
+body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', Roboto, sans-serif;
     background-color: var(--bg-page);
     color: var(--text-primary);
+    overflow: hidden; /* App Shell fixed */
+    user-select: none;
 }
 
-/* === SCROLL CONTAINER === */
+/* === 3. PLATFORM SPECIFIC: iOS (The "Apple" Look) === */
+body.is-ios {
+    --radius-l: 20px;
+    --radius-m: 14px;
+    --radius-s: 10px;
+    font-family: -apple-system, "SF Pro Text", sans-serif;
+    letter-spacing: -0.02em;
+}
+
+body.is-ios header h1 {
+    font-weight: 800;
+    font-size: 32px;
+}
+
+/* iOS: Glassmorphism Modals */
+body.is-ios .bottom-sheet {
+    background-color: var(--bg-card); /* Fallback */
+}
+@supports (backdrop-filter: blur(20px)) {
+    body.is-ios .bottom-sheet {
+        background-color: var(--tg-theme-bg-color); /* Semi-transparent base */
+        backdrop-filter: saturate(180%) blur(20px); /* Frosted Glass */
+    }
+}
+
+/* === 4. PLATFORM SPECIFIC: Android (Material You) === */
+body.is-android {
+    --radius-l: 28px; /* Material shapes are rounder */
+    --radius-m: 16px;
+    --radius-s: 4px;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* === 5. LAYOUT & SCROLL === */
 .app-container {
     height: 100%;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* Momentum Scroll */
+    -webkit-overflow-scrolling: touch;
     padding: 0 16px;
     padding-top: calc(12px + var(--safe-top));
     padding-bottom: calc(100px + var(--safe-bottom));
 }
 .app-container::-webkit-scrollbar { display: none; }
 
-/* === FORM ELEMENTS === */
-input, textarea, select, button {
-    -webkit-appearance: none; appearance: none;
-    border: none; outline: none; background: none; font-family: inherit;
-}
+/* === 6. UI COMPONENTS === */
 
-/* Инпуты в стиле iOS */
-input[type="text"], input[type="datetime-local"], textarea, select {
+/* Inputs */
+input, textarea, select {
+    -webkit-appearance: none; appearance: none;
+    border: none; outline: none;
     background-color: var(--bg-card);
     color: var(--text-primary);
-    font-size: 17px !important; /* Фикс зума */
-    border-radius: var(--radius-input);
-    padding: 12px 16px;
+    border-radius: var(--radius-m);
+    padding: 14px 16px;
     width: 100%;
-    transition: background-color 0.2s;
-}
-/* Эффект нажатия на инпут */
-input:active, textarea:active { background-color: rgba(128,128,128, 0.1); }
-
-/* === COMPONENTS === */
-
-/* Карточка задачи (iOS Grouped Cell style) */
-.task-card {
-    background-color: var(--bg-card);
-    border-radius: var(--radius-card);
-    padding: 16px;
+    font-size: 17px !important;
+    transition: transform 0.1s;
     margin-bottom: 12px;
-    /* Тень только на Android, на iOS плоский дизайн */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
-body.is-ios .task-card {
-    box-shadow: none; /* На iOS карточки обычно без тени в Grouped style */
+input:focus, textarea:focus {
+    transform: scale(1.01); /* Subtle zoom on focus */
 }
 
-/* Tabs (iOS Segmented Control) */
+/* Buttons */
+button { border: none; background: none; cursor: pointer; font-family: inherit; }
+
+/* Tabs */
 .tab-container {
-    background-color: rgba(118, 118, 128, 0.12); /* Цвет трека iOS */
-    border-radius: 9px;
+    background-color: rgba(120, 120, 128, 0.12);
+    border-radius: 10px;
     padding: 2px;
     display: flex;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 .tab-btn {
-    flex: 1; padding: 6px;
-    font-size: 13px; font-weight: 500;
-    border-radius: 7px;
+    flex: 1; padding: 7px;
+    font-size: 13px; font-weight: 600;
+    border-radius: 8px;
     color: var(--text-primary);
     text-align: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.6;
+    transition: all 0.3s var(--smooth-easing);
+    position: relative;
+    z-index: 1;
 }
 .tab-btn.active {
-    background-color: var(--bg-card); /* Белый/Черный ползунок */
-    box-shadow: 0 3px 8px rgba(0,0,0,0.12); /* Тень ползунка */
-    font-weight: 600;
+    background-color: var(--bg-card);
+    opacity: 1;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12); /* Shadow only for active */
+    transform: scale(1);
 }
 
-/* FAB */
+/* Task Cards */
+.task-card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-l);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 14px;
+    transition: transform 0.2s var(--spring-easing), opacity 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+/* Active state: Squeeze effect */
+.task-card:active { transform: scale(0.96); }
+
+/* Android Ripple effect emulation */
+body.is-android .task-card { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+body.is-ios .task-card { box-shadow: none; } /* Flat on iOS list */
+
+/* FAB (Floating Button) */
 .fab {
     position: fixed; bottom: calc(20px + var(--safe-bottom)); right: 20px;
     width: 56px; height: 56px; border-radius: 50%;
-    background-color: var(--accent); color: var(--accent-text);
+    background: var(--accent); color: white;
     display: grid; place-content: center; font-size: 24px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    z-index: 100;
-    transition: transform 0.1s;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    z-index: 90;
+    transition: transform 0.3s var(--spring-easing);
 }
-.fab:active { transform: scale(0.92); }
+.fab:active { transform: scale(0.8) rotate(90deg); }
 
-/* === MODALS (iOS Sheet) === */
+/* === 7. MODALS (Bottom Sheet) === */
 .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-    opacity: 0; pointer-events: none; transition: 0.3s; z-index: 150;
-    backdrop-filter: blur(4px); /* Blur is heavy on performance but native to iOS */
+    position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100;
+    backdrop-filter: blur(4px);
 }
 .modal-overlay.active { opacity: 1; pointer-events: auto; }
 
 .bottom-sheet {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background-color: var(--bg-page); /* В модалке фон страницы */
+    background-color: var(--bg-card);
     border-top-left-radius: 24px; border-top-right-radius: 24px;
     padding: 24px; padding-bottom: calc(30px + var(--safe-bottom));
-    transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+    transform: translateY(110%);
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); /* Apple-like slide */
     z-index: 200; max-height: 92%; overflow-y: auto;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
 }
 .bottom-sheet.active { transform: translateY(0); }
 
-/* iOS Handle */
 .sheet-handle {
-    width: 36px; height: 5px; background-color: var(--text-hint);
-    opacity: 0.3; border-radius: 10px; margin: 0 auto 24px auto;
+    width: 40px; height: 5px; background-color: var(--text-secondary);
+    opacity: 0.3; border-radius: 10px; margin: 0 auto 20px auto;
 }
 
-/* === CALENDAR === */
-.calendar-grid {
-    display: grid !important; grid-template-columns: repeat(7, 1fr); gap: 6px;
-    margin-bottom: 20px;
-}
-.calendar-day {
-    aspect-ratio: 1; border-radius: 50%; /* Круглые дни */
-    background-color: var(--bg-card);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-size: 15px; font-weight: 400; color: var(--text-primary);
-}
-.calendar-day.today { color: var(--accent); font-weight: 700; }
-.calendar-day.selected { background-color: var(--text-primary); color: var(--bg-page); }
+/* === 8. ANIMATIONS === */
 
-.dot { width: 4px; height: 4px; border-radius: 50%; background-color: var(--accent); }
-.dot.private { background-color: var(--text-hint); }
-.dot.late { background-color: #ff3b30; }
+/* Staggered List Animation */
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
-/* === TEXT UTILS === */
+.animate-enter {
+    animation: slideInUp 0.4s var(--spring-easing) forwards;
+}
+
+/* === UTILS === */
 .text-main { color: var(--text-primary); }
-.text-hint { color: var(--text-hint); }
+.text-hint { color: var(--text-secondary); }
 .text-accent { color: var(--accent); }
+
+/* Checkbox */
+.custom-checkbox {
+    width: 24px; height: 24px;
+    border: 2px solid var(--text-secondary); border-radius: 50%; /* Circle checkbox like iOS Reminders */
+    display: grid; place-content: center; transition: 0.2s;
+}
+.custom-checkbox:checked {
+    background-color: var(--accent); border-color: var(--accent);
+}
+.custom-checkbox::before {
+    content: "✓"; color: white; font-size: 14px; transform: scale(0); transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.custom-checkbox:checked::before { transform: scale(1); }
+
+/* Visibility Selector */
+.visibility-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+.visibility-option {
+    background-color: var(--bg-page);
+    padding: 12px; border-radius: var(--radius-m);
+    text-align: center; font-size: 14px; font-weight: 500;
+    border: 2px solid transparent; transition: 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    opacity: 0.7;
+}
+.visibility-selector input:checked + .visibility-option {
+    border-color: var(--accent); color: var(--accent);
+    background-color: rgba(51, 144, 236, 0.08);
+    opacity: 1; transform: scale(1.02);
+}
+
+/* Calendar */
+.calendar-grid { display: grid !important; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 20px; }
+.calendar-day {
+    aspect-ratio: 1; border-radius: 50%; background: var(--bg-card);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 500; transition: 0.2s;
+}
+.calendar-day.today { color: var(--accent); font-weight: 800; border: 1px solid var(--accent); }
+.calendar-day.selected { background-color: var(--text-primary); color: var(--bg-page); transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
