@@ -1,167 +1,175 @@
-/* === SYSTEM VARIABLES & RESET === */
+/* === BASE VARIABLES === */
 :root {
-    /* Fallbacks, если переменные не загрузились */
-    --tg-theme-bg-color: #fff;
-    --tg-theme-secondary-bg-color: #f3f4f6;
-    --tg-theme-text-color: #000;
-    --tg-theme-hint-color: #9ca3af;
-    --tg-theme-button-color: #3b82f6;
-    --tg-theme-button-text-color: #fff;
-    --tg-theme-link-color: #2481cc;
+    /* Стандартные переменные (Android/Desktop) */
+    --bg-page: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    --bg-card: var(--tg-theme-bg-color, #ffffff);
+    --text-primary: var(--tg-theme-text-color, #000000);
+    --text-hint: var(--tg-theme-hint-color, #888888);
+    --accent: var(--tg-theme-button-color, #3390ec);
+    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
+    --radius-card: 16px;
+    --radius-input: 12px;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-text-color);
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    overflow-x: hidden;
-    transition: background-color 0.2s, color 0.2s; /* Плавная смена темы */
+/* === iOS SPECIFIC OVERRIDES === */
+/* Apple "Cupertino" Look */
+body.is-ios {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    letter-spacing: -0.02em; /* Плотный текст как в iOS */
+
+    /* Светлая тема iOS (жесткие стандарты) */
+    --bg-page: #F2F2F7; /* System Grouped Background */
+    --bg-card: #FFFFFF;
+    --text-primary: #000000;
+    --text-hint: #8E8E93;
+    --accent: #007AFF; /* Apple Blue */
+    --radius-card: 14px; /* iOS 15+ style */
 }
 
-/* === UTILITY CLASSES (THEME AWARE) === */
-.bg-tg-main { background-color: var(--tg-theme-bg-color); }
-.bg-tg-secondary { background-color: var(--tg-theme-secondary-bg-color); }
-.text-tg-main { color: var(--tg-theme-text-color); }
-.text-tg-hint { color: var(--tg-theme-hint-color); }
-.text-tg-link { color: var(--tg-theme-link-color); }
-.bg-tg-button { background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+/* Темная тема iOS */
+body.is-ios.dark-mode {
+    --bg-page: #000000; /* System Grouped Background Dark */
+    --bg-card: #1C1C1E; /* System Gray 6 */
+    --text-primary: #FFFFFF;
+    --text-hint: #98989D;
+    --accent: #0A84FF; /* Dark Mode Blue */
+}
+
+/* === RESET === */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; /* Важно для iOS, чтобы не скроллился body */
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+}
+
+/* === SCROLL CONTAINER === */
+.app-container {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Momentum Scroll */
+    padding: 0 16px;
+    padding-top: calc(12px + var(--safe-top));
+    padding-bottom: calc(100px + var(--safe-bottom));
+}
+.app-container::-webkit-scrollbar { display: none; }
 
 /* === FORM ELEMENTS === */
 input, textarea, select, button {
-    -webkit-appearance: none; appearance: none; outline: none; font-family: inherit;
+    -webkit-appearance: none; appearance: none;
+    border: none; outline: none; background: none; font-family: inherit;
 }
 
-/* Инпуты адаптируются под фон */
+/* Инпуты в стиле iOS */
 input[type="text"], input[type="datetime-local"], textarea, select {
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-text-color);
-    border: 1px solid transparent; /* Можно сделать border: 1px solid var(--tg-theme-hint-color) с opacity */
-    font-size: 16px !important;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 17px !important; /* Фикс зума */
+    border-radius: var(--radius-input);
+    padding: 12px 16px;
+    width: 100%;
+    transition: background-color 0.2s;
 }
-input::placeholder, textarea::placeholder { color: var(--tg-theme-hint-color); opacity: 0.7; }
+/* Эффект нажатия на инпут */
+input:active, textarea:active { background-color: rgba(128,128,128, 0.1); }
 
-/* Кастомный чекбокс (адаптивный) */
-.custom-checkbox {
-    width: 22px; height: 22px;
-    border: 2px solid var(--tg-theme-hint-color);
-    border-radius: 6px; display: grid; place-content: center;
-    transition: 0.2s; background-color: transparent;
-}
-.custom-checkbox::before {
-    content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
-    font-size: 12px; color: var(--tg-theme-button-text-color); transform: scale(0); transition: 0.2s;
-}
-.custom-checkbox:checked {
-    background-color: var(--tg-theme-button-color);
-    border-color: var(--tg-theme-button-color);
-}
-.custom-checkbox:checked::before { transform: scale(1); }
+/* === COMPONENTS === */
 
-/* Радио-кнопки видимости */
-.visibility-selector input:checked + div {
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
+/* Карточка задачи (iOS Grouped Cell style) */
+.task-card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-card);
+    padding: 16px;
+    margin-bottom: 12px;
+    /* Тень только на Android, на iOS плоский дизайн */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
-.visibility-selector div {
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-text-color);
-    border: 1px solid var(--tg-theme-bg-color); /* Небольшой контраст */
+body.is-ios .task-card {
+    box-shadow: none; /* На iOS карточки обычно без тени в Grouped style */
 }
 
-/* Иконка календаря в инпуте (инверсия для темной темы) */
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(1); /* Инвертируем всегда, а opacity регулирует вид */
-    opacity: 0.4;
+/* Tabs (iOS Segmented Control) */
+.tab-container {
+    background-color: rgba(118, 118, 128, 0.12); /* Цвет трека iOS */
+    border-radius: 9px;
+    padding: 2px;
+    display: flex;
+    margin-bottom: 24px;
 }
-@media (prefers-color-scheme: light) {
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0); }
+.tab-btn {
+    flex: 1; padding: 6px;
+    font-size: 13px; font-weight: 500;
+    border-radius: 7px;
+    color: var(--text-primary);
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tab-btn.active {
+    background-color: var(--bg-card); /* Белый/Черный ползунок */
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12); /* Тень ползунка */
+    font-weight: 600;
+}
+
+/* FAB */
+.fab {
+    position: fixed; bottom: calc(20px + var(--safe-bottom)); right: 20px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background-color: var(--accent); color: var(--accent-text);
+    display: grid; place-content: center; font-size: 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 100;
+    transition: transform 0.1s;
+}
+.fab:active { transform: scale(0.92); }
+
+/* === MODALS (iOS Sheet) === */
+.modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    opacity: 0; pointer-events: none; transition: 0.3s; z-index: 150;
+    backdrop-filter: blur(4px); /* Blur is heavy on performance but native to iOS */
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+.bottom-sheet {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background-color: var(--bg-page); /* В модалке фон страницы */
+    border-top-left-radius: 24px; border-top-right-radius: 24px;
+    padding: 24px; padding-bottom: calc(30px + var(--safe-bottom));
+    transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+    z-index: 200; max-height: 92%; overflow-y: auto;
+}
+.bottom-sheet.active { transform: translateY(0); }
+
+/* iOS Handle */
+.sheet-handle {
+    width: 36px; height: 5px; background-color: var(--text-hint);
+    opacity: 0.3; border-radius: 10px; margin: 0 auto 24px auto;
 }
 
 /* === CALENDAR === */
 .calendar-grid {
-    display: grid !important;
-    grid-template-columns: repeat(7, 1fr); gap: 4px;
-    margin-bottom: 16px; margin-top: 10px;
-}
-.calendar-day-name {
-    text-align: center; font-size: 10px; font-weight: 600;
-    color: var(--tg-theme-hint-color); text-transform: uppercase;
+    display: grid !important; grid-template-columns: repeat(7, 1fr); gap: 6px;
+    margin-bottom: 20px;
 }
 .calendar-day {
-    aspect-ratio: 1; border-radius: 10px;
-    display: flex; flex-direction: column;
-    align-items: center;
-    justify-content: flex-start; /* Число сверху */
-    padding-top: 4px;
-    font-size: 12px; font-weight: 500;
-    background-color: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    position: relative; /* Для позиционирования */
+    aspect-ratio: 1; border-radius: 50%; /* Круглые дни */
+    background-color: var(--bg-card);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 400; color: var(--text-primary);
 }
-.calendar-day.today {
-    color: var(--tg-theme-button-color); font-weight: 800;
-    border: 1px solid var(--tg-theme-button-color);
-}
-.calendar-day.selected {
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
-}
-.task-dots {
-    display: flex;
-    flex-direction: row; /* ГОРИЗОНТАЛЬНО */
-    gap: 3px;
-    margin-top: 4px;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: 80%;
-}
+.calendar-day.today { color: var(--accent); font-weight: 700; }
+.calendar-day.selected { background-color: var(--text-primary); color: var(--bg-page); }
 
-.dot {
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    flex-shrink: 0; /* Чтобы не сжимались */
-}
-.dot.common { background-color: var(--tg-theme-button-color); }
-.dot.private { background-color: var(--tg-theme-hint-color); }
-.dot.late { background-color: #ef4444; }
-.calendar-day.selected .dot { background-color: var(--tg-theme-button-text-color) !important; opacity: 0.8; }
+.dot { width: 4px; height: 4px; border-radius: 50%; background-color: var(--accent); }
+.dot.private { background-color: var(--text-hint); }
+.dot.late { background-color: #ff3b30; }
 
-/* === CARDS & MODALS === */
-.task-card {
-    background-color: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
-}
-
-.bottom-sheet {
-    position: fixed; bottom: -100%; left: 0; right: 0;
-    background-color: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
-    border-radius: 24px 24px 0 0;
-    padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
-    transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: 50; max-height: 90vh; overflow-y: auto;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
-}
-.bottom-sheet.active { bottom: 0; }
-
-.modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    opacity: 0; pointer-events: none; transition: 0.3s; z-index: 40;
-}
-.modal-overlay.active { opacity: 1; pointer-events: auto; }
-
-/* === TABS === */
-.tab-container { background-color: var(--tg-theme-bg-color); }
-.tab-btn { color: var(--tg-theme-text-color); opacity: 0.5; }
-.tab-btn.active {
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
-    opacity: 1;
-}
-
-/* === Animations === */
-.fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* === TEXT UTILS === */
+.text-main { color: var(--text-primary); }
+.text-hint { color: var(--text-hint); }
+.text-accent { color: var(--accent); }

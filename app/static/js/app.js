@@ -20,7 +20,22 @@ async function init() {
 }
 
 function setupTheme() {
-    document.body.style.backgroundColor = tg.themeParams.secondary_bg_color || '#f3f4f6';
+    // 1. Детекция платформы
+    const platform = tg.platform; // 'ios', 'android', 'macos', 'tdesktop'...
+    document.body.className = ''; // Сброс
+
+    if (['ios', 'macos'].includes(platform)) {
+        document.body.classList.add('is-ios');
+    } else {
+        document.body.classList.add('is-android');
+    }
+
+    // 2. Детекция темной темы (для ручной коррекции цветов iOS)
+    if (tg.colorScheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+
+    // 3. Аватарка
     const user = tg.initDataUnsafe?.user;
     if (user) {
         const avatarEl = document.getElementById('user-avatar');
@@ -135,24 +150,25 @@ function renderList() {
         const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate text-xs opacity-50 ml-2 text-tg-link"></i>' : '';
 
         const el = document.createElement('div');
-        el.className = `task-card bg-tg-main p-4 rounded-2xl mb-3 shadow-sm flex items-center gap-3 active:scale-[0.98] transition fade-in border-l-4 ${isCommon ? 'border-l-blue-400' : 'border-l-transparent'} ${isDone ? 'opacity-50 grayscale' : ''}`;
+        // Используем новые семантические классы
+        el.className = `task-card flex items-center gap-3 active:scale-[0.98] transition fade-in border-l-4 ${isCommon ? 'border-l-[var(--accent)]' : 'border-l-transparent'} ${isDone ? 'opacity-50 grayscale' : ''}`;
 
         el.innerHTML = `
-            <div class="w-6 h-6 rounded-full border-2 ${isDone ? 'bg-green-500 border-green-500' : 'border-gray-300'} grid place-content-center shrink-0">
+            <div class="w-6 h-6 rounded-full border-2 ${isDone ? 'bg-green-500 border-green-500' : 'border-[var(--text-hint)]'} grid place-content-center shrink-0">
                 ${isDone ? '<i class="fa-solid fa-check text-white text-[10px]"></i>' : ''}
             </div>
 
             <div class="flex-1 min-w-0">
                 <div class="flex items-center mb-1">
                     ${timeBadge}
-                    <h3 class="font-medium truncate text-sm text-tg-main ${isDone ? 'line-through' : ''}">${task.title} ${repeatIcon}</h3>
+                    <h3 class="font-medium truncate text-sm text-main ${isDone ? 'line-through' : ''}">${task.title} ${repeatIcon}</h3>
                 </div>
-                <div class="flex items-center gap-3 text-[10px] text-tg-hint opacity-80">
+                <div class="flex items-center gap-3 text-[10px] text-hint">
                     ${isCommon ? '<span><i class="fa-solid fa-users"></i> Семья</span>' : '<span><i class="fa-solid fa-lock"></i> Личное</span>'}
                     ${task.subtasks.length > 0 ? `<span>• ${task.subtasks.filter(s => s.is_done).length}/${task.subtasks.length}</span>` : ''}
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-tg-hint opacity-20 text-xs"></i>
+            <i class="fa-solid fa-chevron-right text-hint opacity-30 text-xs"></i>
         `;
         el.onclick = () => openDetail(task);
         list.appendChild(el);

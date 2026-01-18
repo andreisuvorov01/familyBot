@@ -3,122 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Tasks</title>
+    <title>Tasks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=5" rel="stylesheet">
+    <link href="/static/css/style.css?v=12" rel="stylesheet">
 </head>
-<body class="pb-24 px-4 pt-2">
+<body>
 
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-2 sticky top-0 py-2 bg-tg-secondary z-20">
-        <div>
-            <h1 class="text-2xl font-bold text-tg-main">Задачи</h1>
-            <button onclick="toggleView()" id="view-toggle-btn" class="text-xs font-medium text-tg-link bg-tg-main px-3 py-1.5 rounded-md mt-1 active:scale-95 transition shadow-sm border border-transparent">
-                <i class="fa-regular fa-calendar"></i> Календарь
-            </button>
-        </div>
-        <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border-2 border-[var(--tg-theme-bg-color)]">
-            <span id="avatar-letter">?</span>
-        </div>
-    </header>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-main">Задачи</h1>
+                <button onclick="toggleView()" id="view-toggle-btn" class="text-sm font-medium text-accent mt-1">
+                    <i class="fa-regular fa-calendar"></i> Календарь
+                </button>
+            </div>
+            <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-b from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold overflow-hidden">
+                <span id="avatar-letter">?</span>
+            </div>
+        </header>
 
-    <!-- Tabs -->
-    <div class="flex bg-tg-main p-1 rounded-xl shadow-sm mb-4 tab-container">
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition active shadow-md" data-filter="all">Все</button>
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition" data-filter="personal">Личные</button>
-        <button class="tab-btn flex-1 py-2 text-sm font-medium rounded-lg transition" data-filter="common">Общие</button>
-    </div>
-
-    <!-- Calendar Section -->
-    <div id="calendar-wrapper" class="hidden mb-6 fade-in">
-        <div class="flex justify-between items-center mb-4 px-2">
-            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-tg-main text-tg-main shadow-sm flex items-center justify-center active:scale-90"><i class="fa-solid fa-chevron-left text-xs"></i></button>
-            <h2 id="calendar-month-year" class="font-bold text-lg capitalize text-tg-main"></h2>
-            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-tg-main text-tg-main shadow-sm flex items-center justify-center active:scale-90"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+        <!-- Tabs -->
+        <div class="tab-container">
+            <button class="tab-btn active" data-filter="all">Все</button>
+            <button class="tab-btn" data-filter="personal">Личные</button>
+            <button class="tab-btn" data-filter="common">Общие</button>
         </div>
-        <div class="calendar-grid" id="calendar-grid"></div>
-        <div class="flex justify-center mt-2">
-            <button onclick="resetCalendarFilter()" class="text-xs text-tg-link font-medium" id="reset-filter-btn" style="display: none;">Показать все</button>
-        </div>
-    </div>
 
-    <!-- Task List -->
-    <div id="task-list" class="space-y-3">
-        <!-- Skeleton -->
-        <div class="h-16 bg-tg-main rounded-2xl animate-pulse opacity-30"></div>
-        <div class="h-16 bg-tg-main rounded-2xl animate-pulse opacity-30"></div>
+        <!-- Calendar -->
+        <div id="calendar-wrapper" class="hidden mb-6 fade-in">
+            <div class="flex justify-between items-center mb-4 px-2">
+                <button onclick="changeMonth(-1)" class="p-2 text-accent"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2 id="calendar-month-year" class="font-semibold text-lg capitalize text-main"></h2>
+                <button onclick="changeMonth(1)" class="p-2 text-accent"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="flex justify-center mt-2">
+                <button onclick="resetCalendarFilter()" class="text-xs text-accent font-medium" id="reset-filter-btn" style="display: none;">Показать все</button>
+            </div>
+        </div>
+
+        <!-- List -->
+        <div id="task-list" class="pb-20"></div>
     </div>
 
     <!-- FAB -->
-    <button onclick="openCreateModal()" class="fixed bottom-6 right-6 w-14 h-14 bg-tg-button rounded-full shadow-lg grid place-content-center text-2xl active:scale-90 transition z-30 text-[var(--tg-theme-button-text-color)]">
-        <i class="fa-solid fa-plus"></i>
-    </button>
+    <button onclick="openCreateModal()" class="fab"><i class="fa-solid fa-plus"></i></button>
 
     <!-- Overlay -->
     <div id="overlay" class="modal-overlay"></div>
 
-    <!-- Modal: Create/Edit -->
+    <!-- Create Modal -->
     <div id="create-modal" class="bottom-sheet">
-        <div class="w-12 h-1 bg-tg-secondary rounded-full mx-auto mb-6 opacity-50"></div>
-        <h2 class="text-xl font-bold mb-4 text-tg-main">Задача</h2>
+        <div class="sheet-handle"></div>
+        <h2 class="text-xl font-bold mb-5 text-center text-main">Новая задача</h2>
 
-        <input type="text" id="new-title" class="w-full p-4 rounded-xl mb-3 font-medium transition" placeholder="Название задачи">
-        <textarea id="new-desc" rows="3" class="w-full p-4 rounded-xl mb-4 transition resize-none text-sm" placeholder="Добавить описание..."></textarea>
+        <input type="text" id="new-title" class="mb-3 font-medium" placeholder="Название">
+        <textarea id="new-desc" rows="3" class="mb-4 resize-none" placeholder="Заметки (опционально)"></textarea>
 
-        <label class="block text-xs font-bold text-tg-hint mb-1 ml-1 uppercase tracking-wide">Дедлайн</label>
-        <input type="datetime-local" id="new-deadline" class="w-full p-3 rounded-xl mb-4 text-sm font-medium">
-
-        <label class="block text-xs font-bold text-tg-hint mb-1 ml-1 uppercase tracking-wide">Повтор</label>
-        <select id="new-repeat" class="w-full p-3 rounded-xl mb-4 text-sm font-medium">
-            <option value="">Без повтора</option>
-            <option value="daily">Каждый день</option>
-            <option value="weekly">Каждую неделю</option>
-            <option value="monthly">Раз в месяц</option>
-        </select>
+        <div class="flex gap-3 mb-4">
+            <div class="flex-1">
+                <label class="block text-xs font-medium text-hint mb-1 ml-1">ДАТА</label>
+                <input type="datetime-local" id="new-deadline">
+            </div>
+            <div class="flex-1">
+                <label class="block text-xs font-medium text-hint mb-1 ml-1">ПОВТОР</label>
+                <select id="new-repeat">
+                    <option value="">Нет</option>
+                    <option value="daily">День</option>
+                    <option value="weekly">Неделя</option>
+                </select>
+            </div>
+        </div>
 
         <div class="grid grid-cols-2 gap-3 mb-4 visibility-selector">
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="common" checked class="hidden">
-                <div class="p-3 rounded-xl text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
-                    <i class="fa-solid fa-users text-lg"></i> Семья
+                <div class="p-3 rounded-xl text-center font-medium text-sm transition bg-[var(--bg-card)] text-main border border-transparent">
+                    Семья
                 </div>
             </label>
             <label class="cursor-pointer relative">
                 <input type="radio" name="visibility" value="private" class="hidden">
-                <div class="p-3 rounded-xl text-center font-medium text-sm transition flex flex-col items-center gap-1 active:scale-95">
-                    <i class="fa-solid fa-lock text-lg"></i> Личное
+                <div class="p-3 rounded-xl text-center font-medium text-sm transition bg-[var(--bg-card)] text-main border border-transparent">
+                    Личное
                 </div>
             </label>
         </div>
     </div>
 
-    <!-- Modal: Detail -->
+    <!-- Detail Modal -->
     <div id="detail-modal" class="bottom-sheet">
+        <div class="sheet-handle"></div>
         <div class="flex justify-between items-start mb-5">
-            <h2 id="detail-title" class="text-xl font-bold leading-tight mr-2 flex-1 break-words text-tg-main"></h2>
-            <div class="flex gap-2 shrink-0">
-                <button onclick="openEditMode()" class="w-10 h-10 rounded-full bg-tg-secondary text-tg-link flex items-center justify-center active:scale-90 transition"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteTask()" class="w-10 h-10 rounded-full bg-tg-secondary text-red-500 flex items-center justify-center active:scale-90 transition"><i class="fa-solid fa-trash"></i></button>
+            <h2 id="detail-title" class="text-2xl font-bold leading-tight mr-2 flex-1 break-words text-main"></h2>
+            <div class="flex gap-4 shrink-0">
+                <button onclick="openEditMode()" class="text-accent text-lg"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteTask()" class="text-red-500 text-lg"><i class="fa-solid fa-trash"></i></button>
             </div>
-        </div>
-
-        <div class="mb-5 bg-tg-secondary rounded-xl p-4">
-            <p id="detail-desc" class="text-sm text-tg-main whitespace-pre-wrap leading-relaxed opacity-80">Нет описания</p>
         </div>
 
         <div class="mb-6">
-            <h3 class="text-xs font-bold text-tg-hint uppercase mb-3 tracking-wide">Чек-лист</h3>
-            <div id="subtasks-list" class="space-y-2 mb-3"></div>
+            <p id="detail-desc" class="text-base text-main whitespace-pre-wrap leading-relaxed opacity-80">Нет описания</p>
+        </div>
 
-            <div class="flex gap-2">
-                <input type="text" id="new-subtask" placeholder="Добавить шаг..." class="flex-1 px-4 py-3 rounded-xl text-sm transition">
-                <button onclick="addSubtask()" class="bg-tg-secondary text-tg-link px-4 rounded-xl active:scale-90 transition"><i class="fa-solid fa-plus"></i></button>
+        <div class="mb-6">
+            <div id="subtasks-list" class="space-y-0 border-t border-[var(--text-hint)]/10"></div>
+            <div class="flex gap-2 mt-4">
+                <input type="text" id="new-subtask" placeholder="Добавить пункт..." class="flex-1">
+                <button onclick="addSubtask()" class="bg-[var(--accent)] text-white w-10 h-10 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
             </div>
         </div>
 
-        <button id="btn-status" class="w-full py-3.5 rounded-xl font-bold shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2">Завершить</button>
+        <button id="btn-status" class="w-full py-3.5 rounded-xl font-bold text-white shadow-lg bg-[var(--accent)]">Завершить</button>
     </div>
 
     <script src="/static/js/api.js"></script>
