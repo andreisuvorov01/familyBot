@@ -8,9 +8,9 @@ let state = {
     currentTask: null,
     view: 'list',
     calendarDate: new Date(),
-    selectedDateStr: null
-    state.tempDate = null; // Для хранения выбранной даты в пикере
-    state.tempRepeat = null;
+    selectedDateStr: null, // Была пропущена запятая
+    tempDate: null,       // Просто ключ: значение
+    tempRepeat: null
 };
 
 // --- INIT ---
