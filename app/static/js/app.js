@@ -34,11 +34,14 @@ function setupTheme() {
 async function loadTasks() {
     try {
         state.tasks = await api.getTasks();
+        // Обновляем список И календарь (чтобы точки появились)
         renderList();
+        if (state.view === 'calendar') renderCalendar();
     } catch (e) {
         console.error(e);
     }
 }
+
 function toggleView() {
     state.view = state.view === 'list' ? 'calendar' : 'list';
     const wrapper = document.getElementById('calendar-wrapper');
@@ -51,38 +54,31 @@ function toggleView() {
     } else {
         wrapper.classList.add('hidden');
         btn.innerHTML = '<i class="fa-regular fa-calendar"></i> Календарь';
-        resetCalendarFilter(); // Сбрасываем фильтр при выходе
+        resetCalendarFilter();
     }
 }
+
 function renderList() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
 
-    // 1. Фильтр по Табам (Все/Личные)
+    // 1. Фильтр по Табам
     let filtered = state.tasks.filter(t => {
         if (state.filter === 'all') return true;
         if (state.filter === 'common') return t.visibility === 'common';
         return t.visibility !== 'common';
     });
 
-    // 2. Фильтр по ДАТЕ (Если выбрана в календаре)
+    // 2. Фильтр по Дате
     if (state.selectedDateStr) {
         filtered = filtered.filter(t => {
             if (!t.deadline) return false;
             let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
             const tDate = new Date(dStr);
-
-            // Сравниваем локальные даты
             const tDateStr = `${tDate.getFullYear()}-${String(tDate.getMonth()+1).padStart(2,'0')}-${String(tDate.getDate()).padStart(2,'0')}`;
             return tDateStr === state.selectedDateStr;
         });
     }
-
-    const filtered = state.tasks.filter(t => {
-        if (state.filter === 'all') return true;
-        if (state.filter === 'common') return t.visibility === 'common';
-        return t.visibility !== 'common';
-    });
 
     if (filtered.length === 0) {
         list.innerHTML = `<div class="text-center pt-20 opacity-40"><p>Нет задач</p></div>`;
@@ -93,27 +89,18 @@ function renderList() {
         const isDone = task.status === 'done';
         const isCommon = task.visibility === 'common';
 
-       let timeBadge = '';
+        let timeBadge = '';
         if (task.deadline) {
-            // ФИКС ЧАСОВОГО ПОЯСА
-            // Добавляем 'Z', чтобы браузер понял, что это UTC, и перевел в местное время
             let dateStr = task.deadline;
             if (!dateStr.endsWith('Z')) dateStr += 'Z';
-
             const d = new Date(dateStr);
             const now = new Date();
             const isLate = now > d && !isDone;
-
-            // Формат времени
             const timeStr = d.toLocaleDateString('ru-RU', {
                 day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'
             });
-
-            // Цвета
             const colorClass = isLate ? 'text-red-500 font-bold bg-red-50' : 'text-gray-500 bg-gray-100';
-            const icon = isLate ? '<i class="fa-solid fa-fire"></i>' : '<i class="fa-regular fa-clock"></i>';
-
-            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2 flex items-center gap-1">${icon} ${timeStr}</span>`;
+            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
         }
 
         const el = document.createElement('div');
@@ -139,6 +126,100 @@ function renderList() {
     });
 }
 
+// --- Calendar Logic ---
+
+function changeMonth(delta) {
+    state.calendarDate.setMonth(state.calendarDate.getMonth() + delta);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    if (!grid) return; // Защита если календарь скрыт/удален
+
+    // Очищаем всё, кроме заголовков дней (первые 7 элементов)
+    while (grid.children.length > 7) {
+        grid.removeChild(grid.lastChild);
+    }
+
+    const year = state.calendarDate.getFullYear();
+    const month = state.calendarDate.getMonth();
+
+    document.getElementById('calendar-month-year').innerText = state.calendarDate.toLocaleString('ru', { month: 'long', year: 'numeric' });
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+    for (let i = 0; i < adjustedFirstDay; i++) {
+        const div = document.createElement('div');
+        grid.appendChild(div);
+    }
+
+    const today = new Date();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        el.innerText = day;
+
+        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            el.classList.add('today');
+        }
+        if (state.selectedDateStr === dateStr) {
+            el.classList.add('selected');
+        }
+
+        // Поиск задач
+        const dayTasks = state.tasks.filter(t => {
+            if (!t.deadline) return false;
+            let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
+            const tDate = new Date(dStr);
+            return tDate.getFullYear() === year &&
+                   tDate.getMonth() === month &&
+                   tDate.getDate() === day;
+        });
+
+        if (dayTasks.length > 0) {
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'task-dots';
+            dayTasks.slice(0, 4).forEach(t => {
+                const dot = document.createElement('div');
+                dot.className = `dot ${t.status === 'done' ? 'bg-gray-300' : (t.visibility === 'common' ? 'common' : 'private')}`;
+                if (new Date() > new Date(t.deadline) && t.status !== 'done') {
+                    dot.className = 'dot late';
+                }
+                dotsContainer.appendChild(dot);
+            });
+            el.appendChild(dotsContainer);
+        }
+
+        el.onclick = () => selectDate(dateStr);
+        grid.appendChild(el);
+    }
+}
+
+function selectDate(dateStr) {
+    tg.HapticFeedback.selectionChanged();
+    state.selectedDateStr = dateStr;
+    const resetBtn = document.getElementById('reset-filter-btn');
+    if(resetBtn) resetBtn.style.display = 'block';
+
+    renderCalendar();
+    renderList();
+}
+
+function resetCalendarFilter() {
+    state.selectedDateStr = null;
+    const resetBtn = document.getElementById('reset-filter-btn');
+    if(resetBtn) resetBtn.style.display = 'none';
+
+    renderCalendar();
+    renderList();
+}
+
 // --- Detail & Edit ---
 
 function openDetail(task) {
@@ -148,7 +229,6 @@ function openDetail(task) {
     document.getElementById('detail-title').innerText = task.title;
     document.getElementById('detail-title').className = `text-xl font-bold leading-tight mr-2 flex-1 ${isDone ? 'line-through opacity-50' : ''}`;
 
-    // БЕЗОПАСНОЕ ЗАПОЛНЕНИЕ ОПИСАНИЯ
     const descEl = document.getElementById('detail-desc');
     if (descEl) {
         if (task.description && task.description.trim()) {
@@ -180,7 +260,7 @@ function openDetail(task) {
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('light');
     document.getElementById('new-title').value = '';
-    document.getElementById('new-desc').value = ''; // Очищаем описание
+    document.getElementById('new-desc').value = '';
     document.getElementById('new-deadline').value = '';
 
     document.getElementById('create-modal').classList.add('active');
@@ -200,20 +280,13 @@ function openEditMode() {
     document.getElementById('overlay').classList.add('active');
 
     document.getElementById('new-title').value = task.title;
-    document.getElementById('new-desc').value = task.description || ''; // Подставляем описание
+    document.getElementById('new-desc').value = task.description || '';
 
     if(task.deadline) {
-        // ФИКС ЧАСОВОГО ПОЯСА
         let dateStr = task.deadline;
         if (!dateStr.endsWith('Z')) dateStr += 'Z';
-
         const d = new Date(dateStr);
-
-        // Нам нужно вставить в input локальное время в формате "YYYY-MM-DDTHH:mm"
-        // Грязный хак для получения локального ISO:
-        // Смещаем время на разницу часовых поясов и отрезаем 'Z'
         const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-
         document.getElementById('new-deadline').value = localIso;
     } else {
         document.getElementById('new-deadline').value = '';
@@ -240,11 +313,16 @@ async function submitCreate() {
     if (dateVal) deadline = new Date(dateVal).toISOString();
 
     tg.MainButton.showProgress();
-    await api.createTask({ title, description: desc, visibility, deadline });
-    tg.HapticFeedback.notificationOccurred('success');
-    closeModals();
-    loadTasks();
-    tg.MainButton.hideProgress();
+    try {
+        await api.createTask({ title, description: desc, visibility, deadline });
+        tg.HapticFeedback.notificationOccurred('success');
+        closeModals();
+        loadTasks();
+    } catch(e) {
+        alert(e);
+    } finally {
+        tg.MainButton.hideProgress();
+    }
 }
 
 async function submitUpdate() {
@@ -265,9 +343,6 @@ async function submitUpdate() {
     tg.MainButton.hideProgress();
 }
 
-// ... Остальные функции (toggleTaskStatus, renderSubtasks и т.д.) ...
-// Скопируй их из предыдущего ответа, они не менялись,
-// но убедись что toggleTaskStatus вызывает loadTasks()
 async function toggleTaskStatus(task) {
     const newStatus = task.status === 'done' ? 'pending' : 'done';
     tg.HapticFeedback.notificationOccurred('success');
@@ -346,109 +421,6 @@ function setupEventListeners() {
     tg.BackButton.onClick(closeModals);
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
 }
-function changeMonth(delta) {
-    state.calendarDate.setMonth(state.calendarDate.getMonth() + delta);
-    renderCalendar();
-}
 
-function renderCalendar() {
-    const grid = document.getElementById('calendar-grid');
-    // Очищаем всё, кроме заголовков дней (первые 7 элементов)
-    while (grid.children.length > 7) {
-        grid.removeChild(grid.lastChild);
-    }
-
-    const year = state.calendarDate.getFullYear();
-    const month = state.calendarDate.getMonth();
-
-    // Обновляем заголовок
-    document.getElementById('calendar-month-year').innerText = state.calendarDate.toLocaleString('ru', { month: 'long', year: 'numeric' });
-
-    // Определяем первый день месяца и кол-во дней
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Вс, 1 = Пн
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // Корректировка для ПН (чтобы ПН был первым, а ВС седьмым)
-    // getDay(): Вс=0, Пн=1... Сб=6
-    // Нам нужно: Пн=0... Вс=6
-    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
-    // Пустые ячейки до начала месяца
-    for (let i = 0; i < adjustedFirstDay; i++) {
-        const div = document.createElement('div');
-        grid.appendChild(div);
-    }
-
-    // Дни месяца
-    const today = new Date();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dateObj = new Date(year, month, day);
-        // Формат YYYY-MM-DD локально (без сдвига UTC)
-        // Хак: создаем строку вручную, чтобы избежать таймзон
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-
-        const el = document.createElement('div');
-        el.className = 'calendar-day';
-        el.innerText = day;
-
-        // Проверка на сегодня
-        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            el.classList.add('today');
-        }
-
-        // Проверка на выбранный
-        if (state.selectedDateStr === dateStr) {
-            el.classList.add('selected');
-        }
-
-        // Поиск задач на этот день
-        // Задача имеет UTC дедлайн. Нам нужно привести его к локальной дате браузера.
-        const dayTasks = state.tasks.filter(t => {
-            if (!t.deadline) return false;
-            let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-            const tDate = new Date(dStr);
-
-            return tDate.getFullYear() === year &&
-                   tDate.getMonth() === month &&
-                   tDate.getDate() === day;
-        });
-
-        // Рисуем точки
-        if (dayTasks.length > 0) {
-            const dotsContainer = document.createElement('div');
-            dotsContainer.className = 'task-dots';
-            // Максимум 4 точки
-            dayTasks.slice(0, 4).forEach(t => {
-                const dot = document.createElement('div');
-                dot.className = `dot ${t.status === 'done' ? 'bg-gray-300' : (t.visibility === 'common' ? 'common' : 'private')}`;
-                // Если просрочена
-                if (new Date() > new Date(t.deadline) && t.status !== 'done') {
-                    dot.className = 'dot late';
-                }
-                dotsContainer.appendChild(dot);
-            });
-            el.appendChild(dotsContainer);
-        }
-
-        // Клик по дню
-        el.onclick = () => selectDate(dateStr);
-        grid.appendChild(el);
-    }
-}
-
-function selectDate(dateStr) {
-    tg.HapticFeedback.selectionChanged();
-    state.selectedDateStr = dateStr;
-    document.getElementById('reset-filter-btn').style.display = 'block';
-    renderCalendar(); // Чтобы обновить стиль .selected
-    renderList(); // Фильтруем список
-}
-
-function resetCalendarFilter() {
-    state.selectedDateStr = null;
-    document.getElementById('reset-filter-btn').style.display = 'none';
-    renderCalendar();
-    renderList();
-}
+// Поехали!
 init();
