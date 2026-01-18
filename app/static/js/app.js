@@ -56,13 +56,27 @@ function renderList() {
         const isDone = task.status === 'done';
         const isCommon = task.visibility === 'common';
 
-        let timeBadge = '';
+       let timeBadge = '';
         if (task.deadline) {
-            const d = new Date(task.deadline);
-            const isLate = new Date() > d && !isDone;
-            const timeStr = d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'});
+            // ФИКС ЧАСОВОГО ПОЯСА
+            // Добавляем 'Z', чтобы браузер понял, что это UTC, и перевел в местное время
+            let dateStr = task.deadline;
+            if (!dateStr.endsWith('Z')) dateStr += 'Z';
+
+            const d = new Date(dateStr);
+            const now = new Date();
+            const isLate = now > d && !isDone;
+
+            // Формат времени
+            const timeStr = d.toLocaleDateString('ru-RU', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'
+            });
+
+            // Цвета
             const colorClass = isLate ? 'text-red-500 font-bold bg-red-50' : 'text-gray-500 bg-gray-100';
-            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
+            const icon = isLate ? '<i class="fa-solid fa-fire"></i>' : '<i class="fa-regular fa-clock"></i>';
+
+            timeBadge = `<span class="px-2 py-0.5 rounded text-[10px] ${colorClass} mr-2 flex items-center gap-1">${icon} ${timeStr}</span>`;
         }
 
         const el = document.createElement('div');
@@ -152,7 +166,18 @@ function openEditMode() {
     document.getElementById('new-desc').value = task.description || ''; // Подставляем описание
 
     if(task.deadline) {
-        document.getElementById('new-deadline').value = new Date(task.deadline).toISOString().slice(0, 16);
+        // ФИКС ЧАСОВОГО ПОЯСА
+        let dateStr = task.deadline;
+        if (!dateStr.endsWith('Z')) dateStr += 'Z';
+
+        const d = new Date(dateStr);
+
+        // Нам нужно вставить в input локальное время в формате "YYYY-MM-DDTHH:mm"
+        // Грязный хак для получения локального ISO:
+        // Смещаем время на разницу часовых поясов и отрезаем 'Z'
+        const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+
+        document.getElementById('new-deadline').value = localIso;
     } else {
         document.getElementById('new-deadline').value = '';
     }
