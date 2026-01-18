@@ -59,9 +59,10 @@ body {
 .custom-checkbox:checked::before { transform: scale(1); }
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, 1fr); /* 7 колонок для дней недели */
     gap: 4px;
     margin-bottom: 16px;
+    margin-top: 8px;
 }
 
 .calendar-day-name {
@@ -69,12 +70,12 @@ body {
     font-size: 10px;
     font-weight: 600;
     opacity: 0.5;
-    padding-bottom: 8px;
+    padding-bottom: 4px;
     text-transform: uppercase;
 }
 
 .calendar-day {
-    aspect-ratio: 1; /* Квадратные ячейки */
+    aspect-ratio: 1; /* Квадратные */
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -84,30 +85,32 @@ body {
     font-size: 12px;
     font-weight: 500;
     background-color: var(--tg-theme-bg-color, #fff);
-    border: 1px solid transparent;
     cursor: pointer;
     transition: 0.1s;
     position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Легкая тень */
 }
 
-/* Текущий день (сегодня) */
+/* Сегодняшний день */
 .calendar-day.today {
     color: var(--tg-theme-button-color, #3b82f6);
-    font-weight: 700;
+    font-weight: 800;
+    border: 1px solid var(--tg-theme-button-color, #3b82f6);
 }
 
 /* Выбранный день */
 .calendar-day.selected {
     background-color: var(--tg-theme-button-color, #3b82f6);
     color: var(--tg-theme-button-text-color, #fff);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    border: none;
 }
 
-/* Индикаторы задач (точки) */
+/* Точки задач */
 .task-dots {
     display: flex;
     gap: 2px;
-    margin-top: 4px;
+    margin-top: 2px;
     justify-content: center;
     flex-wrap: wrap;
     max-width: 80%;
@@ -122,5 +125,8 @@ body {
 .dot.private { background-color: #9ca3af; } /* Серый */
 .dot.late { background-color: #ef4444; } /* Красный */
 
-/* Инверсия цветов для точек на выбранном дне */
-.calendar-day.selected .dot { background-color: white !important; opacity: 0.8; }
+/* Инверсия цвета точек на синем фоне (выбранный день) */
+.calendar-day.selected .dot {
+    background-color: white !important;
+    opacity: 0.8;
+}
