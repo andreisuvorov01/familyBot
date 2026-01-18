@@ -421,11 +421,39 @@ async function submitUpdate() {
 }
 
 async function toggleTaskStatus(task) {
-    const newStatus = task.status === 'done' ? 'pending' : 'done';
-    tg.HapticFeedback.notificationOccurred('success');
+    // Если аргумент не передан, берем из state (для надежности)
+    const targetTask = task || state.currentTask;
+
+    if (!targetTask) {
+        console.error("Task not found!");
+        return;
+    }
+
+    const newStatus = targetTask.status === 'done' ? 'pending' : 'done';
+
+    // Оптимистичное обновление (меняем UI мгновенно)
+    targetTask.status = newStatus;
+
+    // Закрываем модалку
     closeModals();
-    await api.toggleTaskStatus(task.id, newStatus);
-    loadTasks();
+
+    // Обновляем список, чтобы галочка появилась сразу
+    renderList();
+
+    tg.HapticFeedback.notificationOccurred('success');
+
+    try {
+        // Шлем запрос на сервер
+        await api.toggleTaskStatus(targetTask.id, newStatus);
+    } catch (e) {
+        // Если ошибка - откатываем изменения и ругаемся
+        alert("Ошибка сети: " + e);
+        targetTask.status = targetTask.status === 'done' ? 'pending' : 'done';
+        renderList();
+    } finally {
+        // В любом случае обновляем данные с сервера
+        loadTasks();
+    }
 }
 
 async function addSubtask() {
