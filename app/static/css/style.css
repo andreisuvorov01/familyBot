@@ -23,13 +23,14 @@
 /* === 2. RESET & BASE === */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-body {
-    margin: 0; padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', Roboto, sans-serif;
+body, html {
+    margin: 0; padding: 0; width: 100%;
+    /* ВАЖНО: Разрешаем скролл и убираем фиксацию */
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
     background-color: var(--bg-page);
     color: var(--text-primary);
-    overflow: hidden; /* App Shell fixed */
-    user-select: none;
 }
 
 /* === 3. PLATFORM SPECIFIC: iOS (The "Apple" Look) === */
@@ -67,12 +68,13 @@ body.is-android {
 
 /* === 5. LAYOUT & SCROLL === */
 .app-container {
-    height: 100%; /* Занимает весь экран */
-    overflow-y: scroll; /* Принудительный скролл */
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 120px; /* Большой отступ снизу, чтобы контент не перекрывался кнопкой */
-    position: relative;
-    z-index: 1;
+    /* Контейнер просто растягивается по высоте контента */
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    padding: 16px;
+    padding-top: calc(12px + var(--safe-top));
+    padding-bottom: calc(100px + var(--safe-bottom)); /* Место под кнопку */
 }
 .app-container::-webkit-scrollbar { display: none; }
 
@@ -91,8 +93,8 @@ input, textarea, select {
     transition: transform 0.1s;
     margin-bottom: 12px;
 }
-input:focus, textarea:focus {
-    transform: scale(1.01); /* Subtle zoom on focus */
+input, textarea, select {
+    font-size: 16px !important;
 }
 
 /* Buttons */
