@@ -235,3 +235,19 @@ body.is-ios .task-card { box-shadow: none; } /* Flat on iOS list */
 }
 .calendar-day.today { color: var(--accent); font-weight: 800; border: 1px solid var(--accent); }
 .calendar-day.selected { background-color: var(--text-primary); color: var(--bg-page); transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.hidden { display: none !important; }
+.task-dots {
+    display: flex; gap: 2px; margin-top: 4px;
+    justify-content: center; /* Центрируем точки */
+}
+.dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background-color: var(--accent);
+}
+.dot.private { background-color: var(--text-hint); }
+.dot.late { background-color: #ef4444; }
+.calendar-day.selected .dot { background-color: white !important; }
+.animate-enter {
+    animation: slideInUp 0.3s ease-out forwards;
+    opacity: 0; /* Чтобы не мелькали до начала анимации */
+}
