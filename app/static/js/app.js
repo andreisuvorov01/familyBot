@@ -264,6 +264,11 @@ function renderCalendar() {
             }
         });
 
+        el.onclick = () => selectDate(dateStr);
+        grid.appendChild(el);
+    }
+}
+
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
     state.selectedDateStr = dateStr;
