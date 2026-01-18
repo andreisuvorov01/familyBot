@@ -39,8 +39,10 @@ class TaskCreate(BaseModel):
     repeat_rule: str | None = None
 
 class TaskUpdate(BaseModel):
+    # Делаем всё Optional и str, чтобы не было конфликтов типов
     status: str | None = None
     title: str | None = None
+    description: str | None = None
     deadline: datetime | None = None
-    repeat_rule: str | None = None
     visibility: str | None = None
+    repeat_rule: str | None = None

@@ -127,7 +127,8 @@ async def update_task(
     old_status = task.status
 
     # Обновление полей
-    if updates.status: task.status = updates.status
+    if updates.status is not None:  # Проверяем именно на None, т.к. пустая строка тоже может быть статусом
+        task.status = updates.status
     if updates.title: task.title = updates.title
     if updates.description: task.description = updates.description
     if updates.visibility:
