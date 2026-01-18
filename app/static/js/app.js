@@ -329,27 +329,66 @@ function openCreateModal() {
 
 function openEditMode() {
     const task = state.currentTask;
-    closeModals();
+    closeModals(); // Закрываем детальный просмотр
 
+    // Открываем модалку создания (она же редактирование)
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 
+    // 1. Заполняем текстовые поля
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
-    document.getElementById('new-repeat').value = task.repeat_rule || '';
 
+    // 2. Заполняем видимость
+    const vis = task.visibility === 'common' ? 'common' : 'private';
+    document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
+
+    // 3. Заполняем ПОВТОР (Custom UI)
+    state.tempRepeat = task.repeat_rule; // Сохраняем в state
+    const repeatMap = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
+    const repeatText = repeatMap[task.repeat_rule] || 'Нет';
+
+    const repeatEl = document.getElementById('val-repeat');
+    repeatEl.innerText = repeatText;
+    if (task.repeat_rule) repeatEl.classList.remove('placeholder');
+    else repeatEl.classList.add('placeholder');
+
+    // 4. Заполняем ДАТУ (Custom UI)
     if(task.deadline) {
-        let dateStr = task.deadline;
-        if (!dateStr.endsWith('Z')) dateStr += 'Z';
-        const d = new Date(dateStr);
-        const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-         state.tempDate = new Date(task.deadline); // Сохраняем в state
-        document.getElementById('val-date').innerText = "...."; // Обновляем текст
+        let dStr = task.deadline;
+        if (!dStr.endsWith('Z')) dStr += 'Z';
+        const d = new Date(dStr);
+
+        state.tempDate = d; // Сохраняем объект даты в state
+
+        // Форматируем для UI: "18 января, 15:00"
+        const dateText = d.toLocaleDateString('ru-RU', {
+            day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit'
+        });
+
+        const dateEl = document.getElementById('val-date');
+        dateEl.innerText = dateText;
+        dateEl.classList.remove('placeholder');
+
+        // Также обновляем time-picker внутри sheet-date, чтобы там было правильное время
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        document.getElementById('time-picker').value = `${hours}:${minutes}`;
 
     } else {
-        document.getElementById('new-deadline').value = '';
+        state.tempDate = null;
+        document.getElementById('val-date').innerText = 'Нет';
+        document.getElementById('val-date').classList.add('placeholder');
     }
-    state.tempRepeat = task.repeat_rule;
+
+    // Настраиваем кнопку
+    tg.MainButton.setText("СОХРАНИТЬ");
+    tg.MainButton.show();
+    tg.MainButton.offClick(submitCreate);
+    tg.MainButton.onClick(submitUpdate);
+}
+
+
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
@@ -401,18 +440,22 @@ function openDetail(task) {
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
-    let deadline = state.tempDate ? state.tempDate.toISOString() : null;
-    let repeat = state.tempRepeat;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
-    const dateVal = document.getElementById('new-deadline').value;
 
-    if(!title.trim()) {
-        tg.HapticFeedback.notificationOccurred('error');
-        return;
+    // Читаем данные из state (так как мы используем кастомные пикеры)
+    const repeat = state.tempRepeat || null;
+    let deadline = null;
+
+    if (state.tempDate) {
+        deadline = state.tempDate.toISOString();
     }
 
-    let deadline = null;
-    if (dateVal) deadline = new Date(dateVal).toISOString();
+    if (!title.trim()) {
+        tg.HapticFeedback.notificationOccurred('error');
+        // Небольшая анимация тряски (если есть CSS)
+        document.getElementById('new-title').focus();
+        return;
+    }
 
     tg.MainButton.showProgress();
     try {
@@ -420,6 +463,16 @@ async function submitCreate() {
             title, description: desc, visibility, deadline, repeat_rule: repeat
         });
         tg.HapticFeedback.notificationOccurred('success');
+
+        // Сброс временных данных
+        state.tempDate = null;
+        state.tempRepeat = null;
+        // Сброс UI
+        document.getElementById('val-date').innerText = 'Нет';
+        document.getElementById('val-date').classList.add('placeholder');
+        document.getElementById('val-repeat').innerText = 'Нет';
+        document.getElementById('val-repeat').classList.add('placeholder');
+
         closeModals();
         loadTasks();
     } catch(e) {
@@ -429,25 +482,34 @@ async function submitCreate() {
     }
 }
 
+
 async function submitUpdate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
-    const repeat = document.getElementById('new-repeat').value || null;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
-    const dateVal = document.getElementById('new-deadline').value;
 
+    // Читаем из state
+    const repeat = state.tempRepeat;
     let deadline = null;
-    if (dateVal) deadline = new Date(dateVal).toISOString();
+    if (state.tempDate) deadline = state.tempDate.toISOString();
 
     tg.MainButton.showProgress();
+
     await api.updateTask(state.currentTask.id, {
         title, description: desc, visibility, deadline, repeat_rule: repeat
     });
+
     tg.HapticFeedback.notificationOccurred('success');
     closeModals();
+
+    // Сброс временных данных
+    state.tempDate = null;
+    state.tempRepeat = null;
+
     loadTasks();
     tg.MainButton.hideProgress();
 }
+
 
 async function toggleTaskStatus(task) {
     const targetTask = task || state.currentTask;
