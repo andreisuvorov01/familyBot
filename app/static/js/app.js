@@ -198,69 +198,79 @@ function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // 1. ОЧИСТКА: Удаляем старые ячейки
+    // 1. ОЧИСТКА: Удаляем только ячейки с днями (не трогаем заголовки Пн, Вт...)
+    // Ищем элементы, у которых НЕТ класса 'calendar-day-name'
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
     oldCells.forEach(c => c.remove());
 
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
 
-    // Обновляем заголовок
+    // Заголовок
     const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
     document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
 
     // Расчет сетки
     const firstDayIndex = new Date(year, month, 1).getDay(); // 0-Вс, 1-Пн
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // Корректировка для Русского календаря (Пн - первый)
+    // Корректировка (Пн - первый день)
     const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-    // 2. Пустые ячейки (отступ)
+    // 2. Пустые ячейки (отступ в начале месяца)
     for (let i = 0; i < adjustedFirstDay; i++) {
         const div = document.createElement('div');
-        div.className = 'calendar-empty';
+        div.className = 'calendar-empty'; // Класс-маркер для очистки
         grid.appendChild(div);
     }
 
-    // 3. Генерация дней
-    const today = new Date(); // Локальное время браузера
+    const today = new Date();
 
+    // 3. Генерация дней
     for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(year, month, day);
+        // Строка YYYY-MM-DD для сравнения
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
 
-        // 1. Цифра дня
+        // А. Цифра дня (в span для верстки)
         const numSpan = document.createElement('span');
         numSpan.innerText = day;
         el.appendChild(numSpan);
 
-        // 2. Классы состояний
-        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+        // Б. Состояния (Сегодня / Выбрано)
+        // Сравниваем локальные даты (день, месяц, год)
+        const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+        if (isToday) {
             el.classList.add('today');
         }
         if (state.selectedDateStr === dateStr) {
             el.classList.add('selected');
         }
 
-        // 3. Точки задач
+        // В. Поиск задач для точек
         const dayTasks = state.tasks.filter(t => checkTaskOnDate(t, currentDate));
 
+        // Г. Рисуем точки
         if (dayTasks.length > 0) {
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'task-dots';
 
-            dayTasks.slice(0, 3).forEach(t => { // Максимум 3 точки, чтобы влезли
+            // Берем максимум 3 задачи, чтобы точки влезли в кружок
+            dayTasks.slice(0, 3).forEach(t => {
                 const dot = document.createElement('div');
-                let dotClass = 'common';
+                let dotClass = 'common'; // Синяя по умолчанию
+
+                // Личная -> Серая
                 if (t.visibility !== 'common') dotClass = 'private';
 
-                // Проверка просрочки
+                // Просрочена -> Красная (только для невыполненных)
                 if (t.deadline) {
                     let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-                    if (new Date(dStr) < new Date() && t.status !== 'done') dotClass = 'late';
+                    if (new Date(dStr) < new Date() && t.status !== 'done') {
+                        dotClass = 'late';
+                    }
                 }
 
                 dot.className = `dot ${dotClass}`;
@@ -269,15 +279,12 @@ function renderCalendar() {
             el.appendChild(dotsContainer);
         }
 
-        el.onclick = () => selectDate(dateStr);
-        grid.appendChild(el);
-    }
-        // --------------------
-
+        // Обработчик клика
         el.onclick = () => selectDate(dateStr);
         grid.appendChild(el);
     }
 }
+
 
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
