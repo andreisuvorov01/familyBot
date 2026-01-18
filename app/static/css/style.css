@@ -1,71 +1,132 @@
-/* --- Основные настройки --- */
-input, textarea, select, button {
-    -webkit-appearance: none; /* Убирает "стеклянный" эффект */
-    appearance: none;
-    border-radius: 0; /* Сбрасывает нативные скругления */
-}
-
-/* Возвращаем скругления для наших классов */
-.rounded-xl { border-radius: 0.75rem; }
-.rounded-lg { border-radius: 0.5rem; }
-.rounded-full { border-radius: 9999px; }
-
-/* 2. Блокируем "резиновый" скролл всей страницы */
-body {
-    overscroll-behavior-y: none; /* Чтобы страница не "прыгала" при прокрутке */
-    /* Учет "челки" и "подбородка" iPhone */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* 3. Фикс зума (увеличиваем шрифт в инпутах, если он мелкий) */
-input[type="text"],
-input[type="datetime-local"],
-textarea,
-select {
-    font-size: 16px !important; /* iOS не зумит, если шрифт >= 16px */
-}
-
-/* 4. Убираем серую подсветку при клике */
+/* === Reset & Base === */
 * {
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent; /* Убираем синюю вспышку при клике на Android */
 }
 
-/* 5. Фикс для модалки на iPhone (чтобы не уезжала под полоску) */
-.bottom-sheet {
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
-}
-
-/* 6. Кастомная стрелочка для Select (iOS убирает её при appearance: none) */
-select {
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem; /* Место под стрелку */
-}
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
     color: var(--tg-theme-text-color, #000);
-    -webkit-tap-highlight-color: transparent;
+    /* Учет безопасных зон iPhone X+ */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
     overflow-x: hidden;
 }
 
+/* Скрываем скроллбар */
 ::-webkit-scrollbar { display: none; }
 
-/* --- Анимации --- */
-.fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+/* === Form Elements Reset (iOS Fix) === */
+input:not([type="checkbox"]),
+textarea,
+select,
+button {
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    font-family: inherit;
 }
 
-/* --- Модальные окна (Шторки) --- */
+/* Фикс зума на iPhone при вводе текста */
+input, textarea, select {
+    font-size: 16px !important;
+}
+
+/* === Components === */
+
+/* Custom Checkbox */
+.custom-checkbox {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px; height: 22px;
+    border: 2px solid var(--tg-theme-hint-color, #d1d5db);
+    border-radius: 6px;
+    display: grid; place-content: center;
+    transition: 0.2s; cursor: pointer;
+    background-color: transparent;
+}
+.custom-checkbox::before {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 12px;
+    color: white;
+    transform: scale(0);
+    transition: 0.2s;
+}
+.custom-checkbox:checked {
+    background-color: #22c55e;
+    border-color: #22c55e;
+}
+.custom-checkbox:checked::before { transform: scale(1); }
+
+/* Visibility Radio (Family/Personal) */
+.visibility-selector input:checked + div {
+    background-color: var(--tg-theme-button-color, #3b82f6);
+    color: var(--tg-theme-button-text-color, #fff);
+    border-color: transparent;
+}
+
+/* Date Input Icon Color Fix */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    opacity: 0.6;
+}
+
+/* === Calendar === */
+.calendar-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 16px; margin-top: 10px;
+}
+
+.calendar-day-name {
+    text-align: center; font-size: 10px; font-weight: 600;
+    opacity: 0.5; text-transform: uppercase;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding-top: 4px; font-size: 12px; font-weight: 500;
+    background-color: var(--tg-theme-bg-color, #fff);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: transform 0.1s;
+}
+.calendar-day:active { transform: scale(0.95); }
+
+.calendar-day.today {
+    color: var(--tg-theme-button-color, #3b82f6);
+    font-weight: 800;
+    border: 1px solid var(--tg-theme-button-color, #3b82f6);
+}
+
+.calendar-day.selected {
+    background-color: var(--tg-theme-button-color, #3b82f6);
+    color: var(--tg-theme-button-text-color, #fff);
+    border: none;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.task-dots {
+    display: flex; gap: 2px; margin-top: 3px;
+    justify-content: center; flex-wrap: wrap; max-width: 80%;
+}
+
+.dot { width: 4px; height: 4px; border-radius: 50%; }
+.dot.common { background-color: #3b82f6; }
+.dot.private { background-color: #9ca3af; }
+.dot.late { background-color: #ef4444; }
+.calendar-day.selected .dot { background-color: white !important; opacity: 0.8; }
+
+/* === Modals (Bottom Sheet) === */
 .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px); opacity: 0; pointer-events: none;
-    transition: opacity 0.3s; z-index: 40;
+    backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: 0.3s; z-index: 40;
 }
 .modal-overlay.active { opacity: 1; pointer-events: auto; }
 
@@ -73,109 +134,16 @@ body {
     position: fixed; bottom: -100%; left: 0; right: 0;
     background: var(--tg-theme-bg-color, #fff);
     border-radius: 24px 24px 0 0;
-    padding: 24px 20px 40px 20px;
+    padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
     transition: bottom 0.4s cubic-bezier(0.19, 1, 0.22, 1);
     z-index: 50; max-height: 90vh; overflow-y: auto;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
 }
 .bottom-sheet.active { bottom: 0; }
 
-/* --- Элементы форм --- */
-.visibility-selector input:checked + div {
-    background-color: var(--tg-theme-button-color, #3b82f6);
-    color: var(--tg-theme-button-text-color, #fff);
-    border-color: transparent;
-}
-
-.custom-checkbox {
-    appearance: none; width: 22px; height: 22px;
-    border: 2px solid var(--tg-theme-hint-color, #d1d5db); border-radius: 6px;
-    display: grid; place-content: center; transition: 0.2s;
-    cursor: pointer;
-}
-.custom-checkbox::before {
-    content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
-    font-size: 12px; color: white; transform: scale(0); transition: 0.2s;
-}
-.custom-checkbox:checked {
-    background-color: #22c55e; border-color: #22c55e;
-}
-.custom-checkbox:checked::before { transform: scale(1); }
-
-/* =========================================
-   КАЛЕНДАРЬ (ВОТ ЭТОГО НЕ ХВАТАЛО)
-   ========================================= */
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 7 колонок для дней недели */
-    gap: 4px;
-    margin-bottom: 16px;
-    margin-top: 8px;
-}
-
-.calendar-day-name {
-    text-align: center;
-    font-size: 10px;
-    font-weight: 600;
-    opacity: 0.5;
-    padding-bottom: 4px;
-    text-transform: uppercase;
-}
-
-.calendar-day {
-    aspect-ratio: 1; /* Квадратные */
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding-top: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    background-color: var(--tg-theme-bg-color, #fff);
-    cursor: pointer;
-    transition: 0.1s;
-    position: relative;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Легкая тень */
-}
-
-/* Сегодняшний день */
-.calendar-day.today {
-    color: var(--tg-theme-button-color, #3b82f6);
-    font-weight: 800;
-    border: 1px solid var(--tg-theme-button-color, #3b82f6);
-}
-
-/* Выбранный день */
-.calendar-day.selected {
-    background-color: var(--tg-theme-button-color, #3b82f6);
-    color: var(--tg-theme-button-text-color, #fff);
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-    border: none;
-}
-
-/* Точки задач */
-.task-dots {
-    display: flex;
-    gap: 2px;
-    margin-top: 2px;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: 80%;
-}
-
-.dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-}
-.dot.common { background-color: #3b82f6; } /* Синий */
-.dot.private { background-color: #9ca3af; } /* Серый */
-.dot.late { background-color: #ef4444; } /* Красный */
-
-/* Инверсия цвета точек на синем фоне (выбранный день) */
-.calendar-day.selected .dot {
-    background-color: white !important;
-    opacity: 0.8;
+/* === Animations === */
+.fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
