@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a9f95470-d0b0-4c95-89fd-5b7ac73227a9" name="Changes" comment="calendar">
-      <change beforePath="$PROJECT_DIR$/app/static/js/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/js/app.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/css/style.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,30 +100,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1768638915803</updated>
-    </task>
-    <task id="LOCAL-00002" summary="security">
-      <option name="closed" value="true" />
-      <created>1768663209396</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1768663209396</updated>
-    </task>
-    <task id="LOCAL-00003" summary="security">
-      <option name="closed" value="true" />
-      <created>1768666177784</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1768666177784</updated>
-    </task>
-    <task id="LOCAL-00004" summary="security">
-      <option name="closed" value="true" />
-      <created>1768666990471</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1768666990471</updated>
     </task>
     <task id="LOCAL-00005" summary="miniapp">
       <option name="closed" value="true" />
@@ -493,7 +469,31 @@
       <option name="project" value="LOCAL" />
       <updated>1768780441610</updated>
     </task>
-    <option name="localTasksCounter" value="51" />
+    <task id="LOCAL-00051" summary="calendar">
+      <option name="closed" value="true" />
+      <created>1768780556554</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1768780556554</updated>
+    </task>
+    <task id="LOCAL-00052" summary="calendar">
+      <option name="closed" value="true" />
+      <created>1768780661671</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1768780661671</updated>
+    </task>
+    <task id="LOCAL-00053" summary="calendar">
+      <option name="closed" value="true" />
+      <created>1768780834865</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1768780834866</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

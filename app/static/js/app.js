@@ -159,7 +159,7 @@ function renderList() {
         el.style.borderLeft = borderLeft;
         if (isDone) el.style.opacity = '0.6';
 
-        el.innerHTML = `
+         el.innerHTML = `
             <div style="width: 24px; height: 24px; border: 2px solid ${isDone ? '#34c759' : 'var(--text-hint)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${isDone ? '#34c759' : 'transparent'}; flex-shrink: 0;">
                 ${isDone ? '<i class="fa-solid fa-check" style="color: white; font-size: 12px;"></i>' : ''}
             </div>

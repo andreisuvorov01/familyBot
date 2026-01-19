@@ -421,10 +421,19 @@ input[value="common"]:checked + .vis-card {
 
 /* Активное состояние - Личное (Темный/Серый) */
 input[value="private"]:checked + .vis-card {
-    background-color: var(--text-main); /* Черный в светлой, Белый в темной */
-    color: var(--bg-page);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    background-color: var(--text-main); /* Черный на светлой, Белый на темной */
+    color: var(--bg-card); /* Инверсия текста */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     transform: translateY(-2px);
+    border: 1px solid transparent;
+}
+
+/* Дополнительно для темной темы, чтобы было красиво */
+@media (prefers-color-scheme: dark) {
+    input[value="private"]:checked + .vis-card {
+        background-color: #3a3a3c; /* Темно-серый, как в iOS настройках */
+        color: #fff;
+    }
 }
 
 /* === FAKE INPUTS (Trigger Buttons) === */
