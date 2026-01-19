@@ -266,70 +266,82 @@ function resetCalendarFilter() {
 }
 
 // === WHEEL TIME PICKER ===
+const ITEM_HEIGHT = 34; // Должно совпадать с CSS .wheel-item height
+
 function initTimeSelectors() {
     const hCol = document.getElementById('wheel-h');
     const mCol = document.getElementById('wheel-m');
 
+    hCol.innerHTML = '';
+    mCol.innerHTML = '';
+
     // Часы 00-23
     for (let i = 0; i < 24; i++) {
-        const div = document.createElement('div');
-        div.className = 'wheel-item';
-        div.innerText = String(i).padStart(2, '0');
-        div.dataset.val = i;
-        hCol.appendChild(div);
-    }
-    // Минуты 00-55
-    for (let i = 0; i < 60; i += 5) {
-        const div = document.createElement('div');
-        div.className = 'wheel-item';
-        div.innerText = String(i).padStart(2, '0');
-        div.dataset.val = i;
-        mCol.appendChild(div);
+        createWheelItem(hCol, i);
     }
 
+    // Минуты 00-59 (КАЖДАЯ минута)
+    for (let i = 0; i < 60; i++) {
+        createWheelItem(mCol, i);
+    }
+
+    // Подключаем "математический" обсервер
     setupWheelObserver(hCol, (val) => selectedH = val);
     setupWheelObserver(mCol, (val) => selectedM = val);
 }
-
+function createWheelItem(container, value) {
+    const div = document.createElement('div');
+    div.className = 'wheel-item';
+    div.innerText = String(value).padStart(2, '0');
+    div.dataset.val = value;
+    // Клик для быстрой прокрутки к элементу
+    div.onclick = () => {
+        container.scrollTo({
+            top: value * ITEM_HEIGHT,
+            behavior: 'smooth'
+        });
+    };
+    container.appendChild(div);
+}
 function setupWheelObserver(container, callback) {
-    let timer = null;
+    // Используем событие scroll для мгновенной реакции
     container.addEventListener('scroll', () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            const center = container.scrollTop + container.clientHeight / 2;
-            let closest = null;
-            let minDiff = Infinity;
-            Array.from(container.children).forEach(child => {
-                const childCenter = child.offsetTop + child.offsetHeight / 2;
-                const diff = Math.abs(center - childCenter);
-                if (diff < minDiff) { minDiff = diff; closest = child; }
+        // Вычисляем индекс центрального элемента
+        // scrollTop - это отступ сверху. Делим на высоту элемента.
+        let index = Math.round(container.scrollTop / ITEM_HEIGHT);
+
+        // Ограничиваем индекс границами списка
+        const maxIndex = container.children.length - 1;
+        if (index < 0) index = 0;
+        if (index > maxIndex) index = maxIndex;
+
+        // Обновляем стили
+        Array.from(container.children).forEach((child, idx) => {
+            if (idx === index) {
+                child.classList.add('active');
+                // Передаем значение наружу
+                callback(parseInt(child.dataset.val));
+            } else {
                 child.classList.remove('active');
-            });
-            if (closest) {
-                closest.classList.add('active');
-                callback(parseInt(closest.dataset.val));
             }
-        }, 50);
+        });
     });
 }
 
 function setWheelTime(h, m) {
     const hCol = document.getElementById('wheel-h');
     const mCol = document.getElementById('wheel-m');
-    const hItem = Array.from(hCol.children).find(el => parseInt(el.dataset.val) === h);
-    let mRound = Math.round(m / 5) * 5;
-    if(mRound === 60) mRound = 55;
-    const mItem = Array.from(mCol.children).find(el => parseInt(el.dataset.val) === mRound);
 
-    if (hItem) {
-        hItem.scrollIntoView({ block: 'center' });
-        hItem.classList.add('active');
+    // Прямая математическая установка скролла
+    // Просто умножаем значение на высоту строки
+    if (hCol) {
+        hCol.scrollTop = h * ITEM_HEIGHT;
         selectedH = h;
     }
-    if (mItem) {
-        mItem.scrollIntoView({ block: 'center' });
-        mItem.classList.add('active');
-        selectedM = mRound;
+
+    if (mCol) {
+        mCol.scrollTop = m * ITEM_HEIGHT;
+        selectedM = m;
     }
 }
 

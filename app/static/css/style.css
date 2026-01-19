@@ -563,66 +563,72 @@ input[value="private"]:checked + .vis-card {
 .time-input:focus {
     background-color: rgba(128, 128, 128, 0.1) !important;
 }
-/* === WHEEL PICKER === */
+/* === WHEEL PICKER (Compact & Precise) === */
 .wheel-picker-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
-    padding: 20px 0;
+    gap: 16px;
+    padding: 0;
     position: relative;
-    height: 200px;
-    overflow: hidden;
+    height: 120px; /* Компактная высота */
     background: var(--bg-card);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+    /* Жесткая маска для эффекта "барабана" */
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+    border-radius: 12px;
 }
 
-/* Центральная линия (выделение) */
+/* Центральная линия */
 .wheel-highlight {
     position: absolute;
-    top: 50%; left: 0; right: 0;
-    height: 40px;
+    top: 50%; left: 20px; right: 20px;
+    height: 34px; /* Высота строки */
     transform: translateY(-50%);
-    background: var(--bg-page);
-    z-index: 0;
+    background: rgba(128, 128, 128, 0.1);
     border-radius: 8px;
-    opacity: 0.5;
+    z-index: 0;
     pointer-events: none;
 }
 
 .wheel-column {
     height: 100%;
     width: 60px;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory; /* Магия CSS: остановка на элементах */
+    overflow-y: auto;
+    /* Важно: заставляем скролл останавливаться ровно на элементах */
+    scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
     z-index: 1;
-    padding-bottom: 80px; /* Отступы для центрирования */
-    padding-top: 80px;
+    /* Отступы, чтобы первый элемент мог встать в центр */
+    /* (Высота контейнера 120 - Высота элемента 34) / 2 = 43px */
+    padding-top: 43px;
+    padding-bottom: 43px;
+    /* Скрываем скроллбар */
+    scrollbar-width: none;
 }
 .wheel-column::-webkit-scrollbar { display: none; }
 
 .wheel-item {
-    height: 40px;
+    height: 34px; /* Фиксированная высота элемента */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    scroll-snap-align: center; /* Элемент всегда встанет в центр */
-    transition: 0.2s;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-hint);
+    scroll-snap-align: center; /* Центрирование */
+    transition: all 0.1s;
     cursor: pointer;
 }
 
-/* Скрипт будет добавлять класс .active центральному элементу */
 .wheel-item.active {
     color: var(--accent);
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 700;
+    transform: scale(1.1);
 }
 
 .wheel-separator {
-    font-size: 24px; font-weight: 700; color: var(--text-main); margin-top: -10px;
+    font-size: 20px; font-weight: 700; color: var(--text-main); margin-top: -2px; z-index: 2;
 }
+
