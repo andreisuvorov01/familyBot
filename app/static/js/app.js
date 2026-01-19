@@ -1,16 +1,16 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// Глобальное состояние
+// 1. ИСПРАВЛЕННЫЙ STATE (убраны state. и точки с запятой внутри)
 let state = {
     tasks: [],
     filter: 'all',
     currentTask: null,
     view: 'list',
     calendarDate: new Date(),
-    selectedDateStr: null, // Была пропущена запятая
-    tempDate: null,       // Просто ключ: значение
-    tempRepeat: null
+    selectedDateStr: null,
+    tempDate: null,   // Исправлено
+    tempRepeat: null  // Исправлено
 };
 
 // --- INIT ---
@@ -18,11 +18,10 @@ async function init() {
     setupTheme();
     setupEventListeners();
     await loadTasks();
-    setInterval(loadTasks, 15000); // Live update
+    setInterval(loadTasks, 15000);
 }
 
 function setupTheme() {
-    // Детекция платформы для стилей
     const platform = tg.platform;
     if (['ios', 'macos'].includes(platform)) {
         document.body.classList.add('is-ios');
@@ -30,11 +29,8 @@ function setupTheme() {
         document.body.classList.add('is-android');
     }
 
-    // Принудительно ставим цвет фона из CSS переменной
-    // (Telegram иногда перебивает своим, но наш CSS важнее)
     document.body.style.backgroundColor = 'var(--bg-page)';
 
-    // Аватар
     const user = tg.initDataUnsafe?.user;
     if (user) {
         const avatarEl = document.getElementById('user-avatar');
@@ -53,7 +49,7 @@ async function loadTasks() {
         renderList();
         if (state.view === 'calendar') renderCalendar();
     } catch (e) {
-        console.error(e);
+        console.error("API Error:", e);
     }
 }
 
@@ -125,7 +121,6 @@ function renderList() {
         const isDone = task.status === 'done';
         const isCommon = task.visibility === 'common';
 
-        // Виртуальная дата для повтора
         let displayDeadlineStr = task.deadline;
         if (state.selectedDateStr && task.repeat_rule && task.deadline) {
             let origStr = task.deadline.endsWith('Z') ? task.deadline : task.deadline + 'Z';
@@ -158,7 +153,6 @@ function renderList() {
 
         const el = document.createElement('div');
         el.className = 'task-card';
-        // Анимация каскадом
         el.classList.add('animate-enter');
         el.style.animationDelay = `${index * 0.05}s`;
 
@@ -200,7 +194,6 @@ function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // Очистка
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
     oldCells.forEach(c => c.remove());
 
@@ -220,46 +213,40 @@ function renderCalendar() {
         grid.appendChild(div);
     }
 
-    // Текущая дата (для сравнения)
-    const now = new Date();
-    // Обнуляем время у "сегодня", чтобы сравнивать только даты
-    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     for (let day = 1; day <= daysInMonth; day++) {
-        const cellDate = new Date(year, month, day); // 00:00 локального времени
+        const currentDate = new Date(year, month, day);
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
 
-        // Цифра
-        const numSpan = document.createElement('span');
-        numSpan.innerText = day;
-        el.appendChild(numSpan);
+        const span = document.createElement('span');
+        span.innerText = day;
+        el.appendChild(span);
 
-        // Проверка: Является ли эта ячейка "Сегодняшним днем"?
-        const isTodayCell = cellDate.getTime() === todayMidnight.getTime();
+        // Today
+        if (currentDate.getTime() === todayMidnight.getTime()) {
+            el.classList.add('today');
+        }
+        if (state.selectedDateStr === dateStr) {
+            el.classList.add('selected');
+        }
 
-        if (isTodayCell) el.classList.add('today');
-        if (state.selectedDateStr === dateStr) el.classList.add('selected');
-
-        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ ---
         const dayTasks = state.tasks.filter(t => {
-            // 1. Стандартная проверка (попадает ли задача на эту дату)
-            const matchesDate = checkTaskOnDate(t, cellDate);
-            if (matchesDate) return true;
+            // Обычная проверка
+            const matches = checkTaskOnDate(t, currentDate);
+            if (matches) return true;
 
-            // 2. СПЕЦИАЛЬНО ДЛЯ "СЕГОДНЯ": Показываем просроченные задачи
-            if (isTodayCell && t.status !== 'done' && t.deadline) {
+            // Для "Сегодня" показываем просроченные
+            if (currentDate.getTime() === todayMidnight.getTime() && t.status !== 'done' && t.deadline) {
                 let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-                const tDate = new Date(dStr);
-                // Если дедлайн меньше "сейчас" -> это долг, рисуем точку на сегодня
-                if (tDate < now) return true;
+                if (new Date(dStr) < today) return true;
             }
-
             return false;
         });
-        // ---------------------------------
 
         if (dayTasks.length > 0) {
             const dotsContainer = document.createElement('div');
@@ -267,16 +254,11 @@ function renderCalendar() {
             dayTasks.slice(0, 3).forEach(t => {
                 const dot = document.createElement('div');
                 let dotClass = 'common';
-
                 if (t.visibility !== 'common') dotClass = 'private';
 
-                // Красим в красный, если просрочена
                 if (t.deadline) {
                     let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
-                    // Если просрочена И не выполнена -> late
-                    if (new Date(dStr) < now && t.status !== 'done') {
-                        dotClass = 'late';
-                    }
+                    if (new Date(dStr) < new Date() && t.status !== 'done') dotClass = 'late';
                 }
 
                 dot.className = `dot ${dotClass}`;
@@ -289,8 +271,6 @@ function renderCalendar() {
         grid.appendChild(el);
     }
 }
-
-
 
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
@@ -313,13 +293,19 @@ function openCreateModal() {
     tg.HapticFeedback.impactOccurred('medium');
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
-    document.getElementById('new-deadline').value = '';
-    document.getElementById('new-repeat').value = '';
+
+    // Сброс кастомных пикеров
+    state.tempDate = null;
+    state.tempRepeat = null;
+    document.getElementById('val-date').innerText = 'Нет';
+    document.getElementById('val-date').classList.add('placeholder');
+    document.getElementById('val-repeat').innerText = 'Нет';
+    document.getElementById('val-repeat').classList.add('placeholder');
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 
-    setTimeout(() => document.getElementById('new-title').focus(), 300); // Focus after animation
+    setTimeout(() => document.getElementById('new-title').focus(), 300);
 
     tg.MainButton.setText("СОЗДАТЬ");
     tg.MainButton.show();
@@ -327,6 +313,7 @@ function openCreateModal() {
     tg.MainButton.onClick(submitCreate);
 }
 
+// 2. ИСПРАВЛЕННАЯ ФУНКЦИЯ openEditMode (без дубликатов)
 function openEditMode() {
     const task = state.currentTask;
     closeModals();
@@ -334,25 +321,24 @@ function openEditMode() {
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 
-    // 1. Текстовые поля
+    // Текст
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
 
-    // 2. Видимость
+    // Видимость
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
-    // 3. Повтор (Custom UI)
+    // Повтор (Custom UI)
     state.tempRepeat = task.repeat_rule;
     const repeatMap = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
     const repeatText = repeatMap[task.repeat_rule] || 'Нет';
-
     const repeatEl = document.getElementById('val-repeat');
     repeatEl.innerText = repeatText;
     if (task.repeat_rule) repeatEl.classList.remove('placeholder');
     else repeatEl.classList.add('placeholder');
 
-    // 4. Дата (Custom UI)
+    // Дата (Custom UI)
     if(task.deadline) {
         let dStr = task.deadline;
         if (!dStr.endsWith('Z')) dStr += 'Z';
@@ -374,16 +360,6 @@ function openEditMode() {
         document.getElementById('val-date').innerText = 'Нет';
         document.getElementById('val-date').classList.add('placeholder');
     }
-
-    tg.MainButton.setText("СОХРАНИТЬ");
-    tg.MainButton.show();
-    tg.MainButton.offClick(submitCreate);
-    tg.MainButton.onClick(submitUpdate);
-}
-
-
-    const vis = task.visibility === 'common' ? 'common' : 'private';
-    document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
     tg.MainButton.setText("СОХРАНИТЬ");
     tg.MainButton.show();
@@ -435,17 +411,13 @@ async function submitCreate() {
     const desc = document.getElementById('new-desc').value;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
 
-    // Читаем данные из state (так как мы используем кастомные пикеры)
+    // Берем данные из state
     const repeat = state.tempRepeat || null;
     let deadline = null;
-
-    if (state.tempDate) {
-        deadline = state.tempDate.toISOString();
-    }
+    if (state.tempDate) deadline = state.tempDate.toISOString();
 
     if (!title.trim()) {
         tg.HapticFeedback.notificationOccurred('error');
-        // Небольшая анимация тряски (если есть CSS)
         document.getElementById('new-title').focus();
         return;
     }
@@ -457,15 +429,6 @@ async function submitCreate() {
         });
         tg.HapticFeedback.notificationOccurred('success');
 
-        // Сброс временных данных
-        state.tempDate = null;
-        state.tempRepeat = null;
-        // Сброс UI
-        document.getElementById('val-date').innerText = 'Нет';
-        document.getElementById('val-date').classList.add('placeholder');
-        document.getElementById('val-repeat').innerText = 'Нет';
-        document.getElementById('val-repeat').classList.add('placeholder');
-
         closeModals();
         loadTasks();
     } catch(e) {
@@ -475,34 +438,24 @@ async function submitCreate() {
     }
 }
 
-
 async function submitUpdate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
 
-    // Читаем из state
-    const repeat = state.tempRepeat;
+    const repeat = state.tempRepeat || null;
     let deadline = null;
     if (state.tempDate) deadline = state.tempDate.toISOString();
 
     tg.MainButton.showProgress();
-
     await api.updateTask(state.currentTask.id, {
         title, description: desc, visibility, deadline, repeat_rule: repeat
     });
-
     tg.HapticFeedback.notificationOccurred('success');
     closeModals();
-
-    // Сброс временных данных
-    state.tempDate = null;
-    state.tempRepeat = null;
-
     loadTasks();
     tg.MainButton.hideProgress();
 }
-
 
 async function toggleTaskStatus(task) {
     const targetTask = task || state.currentTask;
@@ -587,52 +540,38 @@ function closeModals() {
     document.activeElement.blur();
 }
 
-function setupEventListeners() {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => setFilter(btn.dataset.filter));
-    document.getElementById('overlay').onclick = closeModals;
-    tg.BackButton.onClick(closeModals);
-    document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
+function closeSheets() {
+    document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
+    document.getElementById('overlay').classList.remove('active');
 }
-// --- CUSTOM REPEAT SHEET ---
+
+// --- Custom Picker Logic ---
 function openRepeatSheet() {
     document.getElementById('sheet-repeat').classList.add('active');
     document.getElementById('overlay').classList.add('active');
-    // Чтобы закрыть по клику на фон
     document.getElementById('overlay').onclick = () => {
         closeSheets();
-        document.getElementById('create-modal').classList.add('active'); // Возвращаем родительскую модалку
+        document.getElementById('create-modal').classList.add('active');
         document.getElementById('overlay').classList.add('active');
     };
 }
 
 function selectRepeat(value) {
     state.tempRepeat = value;
-
-    // Обновляем текст в UI
     const map = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
     const el = document.getElementById('val-repeat');
     el.innerText = map[value];
-
-    if (value) {
-        el.classList.remove('placeholder');
-    } else {
-        el.classList.add('placeholder');
-    }
-
+    if (value) el.classList.remove('placeholder');
+    else el.classList.add('placeholder');
     closeSheets();
-    // Возвращаем фокус на создание
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
 }
 
-// --- CUSTOM DATE SHEET ---
 function openDateSheet() {
     document.getElementById('sheet-date').classList.add('active');
     document.getElementById('overlay').classList.add('active');
-
-    // Рендерим календарь для выбора (упрощенная версия)
     renderPickerCalendar();
-
     document.getElementById('overlay').onclick = () => {
         closeSheets();
         document.getElementById('create-modal').classList.add('active');
@@ -647,16 +586,12 @@ function selectQuickDate(offsetDays) {
 }
 
 function applyDate(dateObj) {
-    // Берем время из инпута
     const timeStr = document.getElementById('time-picker').value || "12:00";
     const [hours, minutes] = timeStr.split(':').map(Number);
-
     dateObj.setHours(hours);
     dateObj.setMinutes(minutes);
-
     state.tempDate = dateObj;
 
-    // Обновляем UI
     const el = document.getElementById('val-date');
     el.innerText = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
     el.classList.remove('placeholder');
@@ -675,38 +610,31 @@ function clearDate() {
     document.getElementById('overlay').classList.add('active');
 }
 
-// Мини-календарь внутри пикера (копия логики renderCalendar, но с кликом на выбор)
 function renderPickerCalendar() {
     const grid = document.getElementById('picker-calendar-grid');
     if(!grid) return;
     grid.innerHTML = '';
-
-    // Рисуем текущий месяц
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // ... (добавь заголовки дней если хочешь, или просто цифры)
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day++) {
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.innerHTML = `<span>${day}</span>`;
-
         if (day === now.getDate()) el.classList.add('today');
-
         el.onclick = () => {
-            const selected = new Date(year, month, day);
+            const selected = new Date(now.getFullYear(), now.getMonth(), day);
             applyDate(selected);
         };
         grid.appendChild(el);
     }
 }
 
-function closeSheets() {
-    document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
-    document.getElementById('overlay').classList.remove('active');
+function setupEventListeners() {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => setFilter(btn.dataset.filter));
+    document.getElementById('overlay').onclick = closeModals;
+    tg.BackButton.onClick(closeModals);
+    document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
 }
 
 init();
