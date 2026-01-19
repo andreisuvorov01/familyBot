@@ -1,6 +1,9 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
+// === CONSTANTS ===
+const ITEM_HEIGHT = 34; // Высота строки в барабане (должна совпадать с CSS)
+
 // === STATE ===
 let state = {
     tasks: [],
@@ -13,17 +16,18 @@ let state = {
     tempRepeat: null
 };
 
-// Переменные для Wheel Picker
+// Глобальные переменные для пикера
 let selectedH = 12;
 let selectedM = 0;
 let pickerDate = new Date();
+let renderedTaskIds = new Set(); // Храним ID отрисованных задач
 
 // === INIT ===
 async function init() {
     setupTheme();
     setupEventListeners();
     initSwipeGestures();
-    initTimeSelectors(); // Инициализация барабанов
+    initTimeSelectors(); // Генерация барабанов (1 раз)
 
     await loadTasks();
     setInterval(loadTasks, 15000);
@@ -93,7 +97,7 @@ function toggleView() {
     }
 }
 
-// === RENDER LIST ===
+// === RENDER LIST (Smart Animation) ===
 function renderList() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
@@ -144,12 +148,23 @@ function renderList() {
         }
 
         const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate" style="font-size: 12px; opacity: 0.6; margin-left: 6px;"></i>' : '';
+        const iconType = isCommon ? '<i class="fa-solid fa-users"></i>' : '<i class="fa-solid fa-lock"></i>';
         const borderLeft = isCommon ? '4px solid var(--accent)' : '4px solid transparent';
 
         const el = document.createElement('div');
         el.className = 'task-card';
-        el.classList.add('animate-enter');
-        el.style.animationDelay = `${index * 0.05}s`;
+
+        // УМНАЯ АНИМАЦИЯ: Только если задачи не было в списке ранее
+        if (!renderedTaskIds.has(task.id)) {
+            el.classList.add('animate-enter');
+            el.style.animationDelay = `${index * 0.05}s`;
+            renderedTaskIds.add(task.id);
+        } else {
+            // Иначе показываем сразу
+            el.style.opacity = isDone ? '0.6' : '1';
+            el.style.transform = 'translateY(0)';
+        }
+
         el.style.borderLeft = borderLeft;
         if (isDone) el.style.opacity = '0.6';
 
@@ -157,6 +172,7 @@ function renderList() {
             <div style="width: 24px; height: 24px; border: 2px solid ${isDone ? '#34c759' : 'var(--text-hint)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${isDone ? '#34c759' : 'transparent'}; flex-shrink: 0;">
                 ${isDone ? '<i class="fa-solid fa-check" style="color: white; font-size: 12px;"></i>' : ''}
             </div>
+
             <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; margin-bottom: 4px;">
                     ${timeBadge}
@@ -165,7 +181,7 @@ function renderList() {
                     </div>
                 </div>
                 <div style="font-size: 13px; color: var(--text-hint); display: flex; gap: 10px;">
-                    <span style="display: flex; align-items: center; gap: 4px;">${isCommon ? '<i class="fa-solid fa-users"></i> Семья' : '<i class="fa-solid fa-lock"></i> Личное'}</span>
+                    <span style="display: flex; align-items: center; gap: 4px;">${iconType} ${isCommon ? 'Семья' : 'Личное'}</span>
                     ${task.subtasks.length > 0 ? `<span>• ${task.subtasks.filter(s => s.is_done).length}/${task.subtasks.length}</span>` : ''}
                 </div>
             </div>
@@ -174,6 +190,136 @@ function renderList() {
         el.onclick = () => openDetail(task);
         list.appendChild(el);
     });
+}
+
+// === WHEEL TIME PICKER (Optimized) ===
+function initTimeSelectors() {
+    const hCol = document.getElementById('wheel-h');
+    const mCol = document.getElementById('wheel-m');
+
+    // Очистка перед генерацией
+    hCol.innerHTML = '';
+    mCol.innerHTML = '';
+
+    // Часы 00-23
+    for (let i = 0; i < 24; i++) {
+        createWheelItem(hCol, i);
+    }
+    // Минуты 00-59
+    for (let i = 0; i < 60; i++) {
+        createWheelItem(mCol, i);
+    }
+
+    setupWheelObserver(hCol, (val) => selectedH = val);
+    setupWheelObserver(mCol, (val) => selectedM = val);
+}
+
+function createWheelItem(container, val) {
+    const div = document.createElement('div');
+    div.className = 'wheel-item';
+    div.innerText = String(val).padStart(2, '0');
+    div.dataset.val = val;
+    div.onclick = () => {
+        container.scrollTo({ top: val * ITEM_HEIGHT, behavior: 'smooth' });
+    };
+    container.appendChild(div);
+}
+
+function setupWheelObserver(container, callback) {
+    let isScrolling = false;
+    const update = () => {
+        const index = Math.round(container.scrollTop / ITEM_HEIGHT);
+        const maxIndex = container.children.length - 1;
+
+        Array.from(container.children).forEach((child, idx) => {
+            if (idx === index) {
+                child.classList.add('active');
+                callback(parseInt(child.dataset.val));
+            } else {
+                child.classList.remove('active');
+            }
+        });
+        isScrolling = false;
+    };
+
+    container.addEventListener('scroll', () => {
+        if (!isScrolling) {
+            window.requestAnimationFrame(update);
+            isScrolling = true;
+        }
+    }, { passive: true });
+}
+
+function setWheelTime(h, m) {
+    const hCol = document.getElementById('wheel-h');
+    const mCol = document.getElementById('wheel-m');
+    // Прямой скролл без анимации для мгновенной установки
+    if(hCol) hCol.scrollTop = h * ITEM_HEIGHT;
+    if(mCol) mCol.scrollTop = m * ITEM_HEIGHT;
+
+    selectedH = h;
+    selectedM = m;
+}
+
+// === SHEETS LOGIC ===
+function openDateSheet() {
+    document.getElementById('sheet-date').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    renderPickerCalendar();
+
+    let d = state.tempDate ? new Date(state.tempDate) : new Date();
+    // Небольшая задержка чтобы DOM отрисовался
+    setTimeout(() => setWheelTime(d.getHours(), d.getMinutes()), 50);
+
+    document.getElementById('overlay').onclick = () => {
+        closeSheets();
+        document.getElementById('create-modal').classList.add('active');
+        document.getElementById('overlay').classList.add('active');
+    };
+}
+
+// ... Остальные функции пикеров (selectQuickDate, applyDate, clearDate...)
+// Скопируй их из предыдущего ответа, они корректны.
+function selectQuickDate(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    applyDate(d);
+}
+
+function applyDate(dateObj) {
+    dateObj.setHours(selectedH);
+    dateObj.setMinutes(selectedM);
+    state.tempDate = dateObj;
+    const el = document.getElementById('val-date');
+    el.innerText = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
+    el.classList.remove('placeholder');
+    document.getElementById('sheet-date').classList.remove('active');
+}
+
+function clearDate() {
+    state.tempDate = null;
+    document.getElementById('val-date').innerText = "Нет";
+    document.getElementById('val-date').classList.add('placeholder');
+    document.getElementById('sheet-date').classList.remove('active');
+}
+
+function openRepeatSheet() {
+    document.getElementById('sheet-repeat').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = () => {
+        closeSheets();
+        document.getElementById('create-modal').classList.add('active');
+        document.getElementById('overlay').classList.add('active');
+    };
+}
+
+function selectRepeat(value) {
+    state.tempRepeat = value;
+    const map = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
+    document.getElementById('val-repeat').innerText = map[value];
+    if (value) document.getElementById('val-repeat').classList.remove('placeholder');
+    else document.getElementById('val-repeat').classList.add('placeholder');
+    document.getElementById('sheet-repeat').classList.remove('active');
 }
 
 // === CALENDAR ===
@@ -209,12 +355,9 @@ function renderCalendar() {
     for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(year, month, day);
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-
         const el = document.createElement('div');
         el.className = 'calendar-day';
-        const span = document.createElement('span');
-        span.innerText = day;
-        el.appendChild(span);
+        el.innerHTML = `<span>${day}</span>`;
 
         if (currentDate.getTime() === todayMidnight.getTime()) el.classList.add('today');
         if (state.selectedDateStr === dateStr) el.classList.add('selected');
@@ -222,6 +365,7 @@ function renderCalendar() {
         const dayTasks = state.tasks.filter(t => {
             const matches = checkTaskOnDate(t, currentDate);
             if (matches) return true;
+            // Для Сегодня показываем просроченные
             if (currentDate.getTime() === todayMidnight.getTime() && t.status !== 'done' && t.deadline) {
                 let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
                 if (new Date(dStr) < today) return true;
@@ -250,6 +394,7 @@ function renderCalendar() {
     }
 }
 
+// Calendar helpers
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
     state.selectedDateStr = dateStr;
@@ -257,161 +402,14 @@ function selectDate(dateStr) {
     renderCalendar();
     renderList();
 }
-
 function resetCalendarFilter() {
     state.selectedDateStr = null;
     document.getElementById('reset-filter-btn').style.display = 'none';
     renderCalendar();
     renderList();
 }
-
-// === WHEEL TIME PICKER ===
-const ITEM_HEIGHT = 34; // Должно совпадать с CSS .wheel-item height
-
-function initTimeSelectors() {
-    const hCol = document.getElementById('wheel-h');
-    const mCol = document.getElementById('wheel-m');
-
-    hCol.innerHTML = '';
-    mCol.innerHTML = '';
-
-    // Часы 00-23
-    for (let i = 0; i < 24; i++) {
-        createWheelItem(hCol, i);
-    }
-
-    // Минуты 00-59 (КАЖДАЯ минута)
-    for (let i = 0; i < 60; i++) {
-        createWheelItem(mCol, i);
-    }
-
-    // Подключаем "математический" обсервер
-    setupWheelObserver(hCol, (val) => selectedH = val);
-    setupWheelObserver(mCol, (val) => selectedM = val);
-}
-function createWheelItem(container, value) {
-    const div = document.createElement('div');
-    div.className = 'wheel-item';
-    div.innerText = String(value).padStart(2, '0');
-    div.dataset.val = value;
-    // Клик для быстрой прокрутки к элементу
-    div.onclick = () => {
-        container.scrollTo({
-            top: value * ITEM_HEIGHT,
-            behavior: 'smooth'
-        });
-    };
-    container.appendChild(div);
-}
-function setupWheelObserver(container, callback) {
-    let isScrolling = false;
-
-    const updateActiveItem = () => {
-        const index = Math.round(container.scrollTop / ITEM_HEIGHT);
-
-        // Обновляем классы (только если изменился индекс, можно оптимизировать еще, но это уже быстро)
-        Array.from(container.children).forEach((child, idx) => {
-            if (idx === index) {
-                if (!child.classList.contains('active')) {
-                    child.classList.add('active');
-                    callback(parseInt(child.dataset.val));
-                }
-            } else {
-                if (child.classList.contains('active')) {
-                    child.classList.remove('active');
-                }
-            }
-        });
-        isScrolling = false;
-    };
-
-    container.addEventListener('scroll', () => {
-        if (!isScrolling) {
-            window.requestAnimationFrame(updateActiveItem);
-            isScrolling = true;
-        }
-    }, { passive: true }); // passive улучшает скролл
-}
-
-
-function setWheelTime(h, m) {
-    const hCol = document.getElementById('wheel-h');
-    const mCol = document.getElementById('wheel-m');
-
-    // Прямая математическая установка скролла
-    // Просто умножаем значение на высоту строки
-    if (hCol) {
-        hCol.scrollTop = h * ITEM_HEIGHT;
-        selectedH = h;
-    }
-
-    if (mCol) {
-        mCol.scrollTop = m * ITEM_HEIGHT;
-        selectedM = m;
-    }
-}
-
-// === SHEETS LOGIC ===
-function openRepeatSheet() {
-    document.getElementById('sheet-repeat').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-    document.getElementById('overlay').onclick = () => {
-        closeSheets();
-        document.getElementById('create-modal').classList.add('active');
-        document.getElementById('overlay').classList.add('active');
-    };
-}
-
-function selectRepeat(value) {
-    state.tempRepeat = value;
-    const map = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
-    document.getElementById('val-repeat').innerText = map[value];
-    if (value) document.getElementById('val-repeat').classList.remove('placeholder');
-    else document.getElementById('val-repeat').classList.add('placeholder');
-
-    document.getElementById('sheet-repeat').classList.remove('active');
-}
-
-function openDateSheet() {
-    document.getElementById('sheet-date').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-    renderPickerCalendar();
-
-    let d = state.tempDate ? new Date(state.tempDate) : new Date();
-    setTimeout(() => setWheelTime(d.getHours(), d.getMinutes()), 100);
-
-    document.getElementById('overlay').onclick = () => {
-        closeSheets();
-        document.getElementById('create-modal').classList.add('active');
-        document.getElementById('overlay').classList.add('active');
-    };
-}
-
-function selectQuickDate(offsetDays) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    applyDate(d);
-}
-
-function applyDate(dateObj) {
-    dateObj.setHours(selectedH);
-    dateObj.setMinutes(selectedM);
-    state.tempDate = dateObj;
-
-    const el = document.getElementById('val-date');
-    el.innerText = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
-    el.classList.remove('placeholder');
-    document.getElementById('sheet-date').classList.remove('active');
-}
-
-function clearDate() {
-    state.tempDate = null;
-    document.getElementById('val-date').innerText = "Нет";
-    document.getElementById('val-date').classList.add('placeholder');
-    document.getElementById('sheet-date').classList.remove('active');
-}
-
 function renderPickerCalendar() {
+    // ... (код календаря в пикере такой же, как в renderCalendar, только с кликом на applyDate)
     const grid = document.getElementById('picker-calendar-grid');
     if(!grid) return;
     grid.innerHTML = '';
@@ -420,25 +418,19 @@ function renderPickerCalendar() {
     const month = pickerDate.getMonth();
     const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
     document.getElementById('picker-month-year').innerText = `${monthNames[month]} ${year}`;
-
     const firstDayIndex = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
     for (let i = 0; i < adjustedFirstDay; i++) {
         const div = document.createElement('div');
         grid.appendChild(div);
     }
-
     for (let day = 1; day <= daysInMonth; day++) {
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.innerHTML = `<span>${day}</span>`;
         if (day === now.getDate() && month === now.getMonth() && year === now.getFullYear()) el.classList.add('today');
-
-        if (state.tempDate && day === state.tempDate.getDate() && month === state.tempDate.getMonth() && year === state.tempDate.getFullYear()) {
-            el.classList.add('selected');
-        }
+        if (state.tempDate && day === state.tempDate.getDate() && month === state.tempDate.getMonth() && year === state.tempDate.getFullYear()) el.classList.add('selected');
         el.onclick = () => {
             const selected = new Date(year, month, day);
             applyDate(selected);
@@ -446,18 +438,16 @@ function renderPickerCalendar() {
         grid.appendChild(el);
     }
 }
-
 function changePickerMonth(delta) {
     pickerDate.setMonth(pickerDate.getMonth() + delta);
     renderPickerCalendar();
 }
 
-// --- MAIN MODALS ---
+// --- MODALS ---
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('medium');
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
-
     state.tempDate = null;
     state.tempRepeat = null;
     document.getElementById('val-date').innerText = 'Нет';
@@ -468,7 +458,6 @@ function openCreateModal() {
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
     document.getElementById('overlay').onclick = closeModals;
-
     setTimeout(() => document.getElementById('new-title').focus(), 300);
     tg.MainButton.setText("СОЗДАТЬ");
     tg.MainButton.show();
@@ -485,16 +474,14 @@ function openEditMode() {
 
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
-
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
     state.tempRepeat = task.repeat_rule;
     const repeatMap = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
-    const repeatEl = document.getElementById('val-repeat');
-    repeatEl.innerText = repeatMap[task.repeat_rule] || 'Нет';
-    if (task.repeat_rule) repeatEl.classList.remove('placeholder');
-    else repeatEl.classList.add('placeholder');
+    document.getElementById('val-repeat').innerText = repeatMap[task.repeat_rule] || 'Нет';
+    if (task.repeat_rule) document.getElementById('val-repeat').classList.remove('placeholder');
+    else document.getElementById('val-repeat').classList.add('placeholder');
 
     if(task.deadline) {
         let dStr = task.deadline;
@@ -586,15 +573,9 @@ async function toggleTaskStatus(task) {
     closeModals();
     tg.HapticFeedback.notificationOccurred('success');
 
-    try {
-        await api.toggleTaskStatus(targetTask.id, newStatus);
-    } catch (e) {
-        alert("Ошибка");
-        targetTask.status = targetTask.status === 'done' ? 'pending' : 'done';
-        renderList();
-    } finally {
-        loadTasks();
-    }
+    try { await api.toggleTaskStatus(targetTask.id, newStatus); }
+    catch (e) { alert("Ошибка"); targetTask.status = newStatus === 'done' ? 'pending' : 'done'; renderList(); }
+    finally { loadTasks(); }
 }
 
 async function addSubtask() {
@@ -672,30 +653,18 @@ function setupEventListeners() {
 }
 
 function initSwipeGestures() {
-    let activeSheet = null;
-    let startY = 0;
-    let currentY = 0;
-    let isDragging = false;
-    let startTime = 0;
-
+    let activeSheet = null, startY = 0, currentY = 0, isDragging = false, startTime = 0;
     document.addEventListener('touchstart', (e) => {
         const sheets = Array.from(document.querySelectorAll('.bottom-sheet.active'));
         if (sheets.length === 0) return;
-        activeSheet = sheets[sheets.length - 1]; // Самый верхний
-
+        activeSheet = sheets[sheets.length - 1];
         if (!activeSheet.contains(e.target)) return;
 
-        // ВАЖНОЕ ИСПРАВЛЕНИЕ:
-        // Если мы касаемся барабана времени, ИГНОРИРУЕМ свайп закрытия
-        if (e.target.closest('.wheel-column')) {
-            activeSheet = null; // Забываем про шторку, даем скроллить барабан
-            return;
-        }
+        // Fix: Игнорируем барабан
+        if (e.target.closest('.wheel-column')) { activeSheet = null; return; }
 
         const isHandle = e.target.classList.contains('sheet-handle');
-        // Если скролл внутри шторки не наверху - не тянем
         if (!isHandle && activeSheet.scrollTop > 0) return;
-
         startY = e.touches[0].clientY;
         startTime = Date.now();
         isDragging = true;
@@ -707,28 +676,23 @@ function initSwipeGestures() {
         currentY = e.touches[0].clientY;
         let delta = currentY - startY;
         if (delta > 0) {
-            e.preventDefault(); // Блокируем скролл страницы
+            e.preventDefault();
             activeSheet.style.transform = `translateY(${delta}px)`;
         }
     }, { passive: false });
 
-    // ... (touchend остается без изменений) ...
     document.addEventListener('touchend', (e) => {
         if (!isDragging || !activeSheet) return;
         isDragging = false;
         const delta = currentY - startY;
         const velocity = delta / (Date.now() - startTime);
-
         activeSheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
-
         if (delta > 120 || (delta > 60 && velocity > 0.5)) {
             activeSheet.classList.remove('active');
             activeSheet.style.transform = '';
             if (activeSheet.id.startsWith('sheet-')) document.getElementById('overlay').onclick = closeModals;
             else closeModals();
-        } else {
-            activeSheet.style.transform = '';
-        }
+        } else activeSheet.style.transform = '';
         activeSheet = null;
     });
 }
