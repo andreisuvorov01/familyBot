@@ -563,3 +563,66 @@ input[value="private"]:checked + .vis-card {
 .time-input:focus {
     background-color: rgba(128, 128, 128, 0.1) !important;
 }
+/* === WHEEL PICKER === */
+.wheel-picker-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    background: var(--bg-card);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+}
+
+/* Центральная линия (выделение) */
+.wheel-highlight {
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 40px;
+    transform: translateY(-50%);
+    background: var(--bg-page);
+    z-index: 0;
+    border-radius: 8px;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.wheel-column {
+    height: 100%;
+    width: 60px;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory; /* Магия CSS: остановка на элементах */
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
+    padding-bottom: 80px; /* Отступы для центрирования */
+    padding-top: 80px;
+}
+.wheel-column::-webkit-scrollbar { display: none; }
+
+.wheel-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    scroll-snap-align: center; /* Элемент всегда встанет в центр */
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+/* Скрипт будет добавлять класс .active центральному элементу */
+.wheel-item.active {
+    color: var(--accent);
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.wheel-separator {
+    font-size: 24px; font-weight: 700; color: var(--text-main); margin-top: -10px;
+}

@@ -123,16 +123,21 @@
         </div>
 
         <!-- Выбор времени (Часы : Минуты) -->
-       <div class="bg-[var(--bg-card)] rounded-xl p-4 mb-4 shadow-sm flex items-center justify-between">
-            <span class="font-medium text-main">Время</span>
-            <div class="flex items-center gap-1 bg-[var(--bg-page)] rounded-lg p-1">
-                <!-- Часы -->
-                <input type="tel" id="pick-h" class="time-input" placeholder="12" maxlength="2" onblur="formatTimeInput(this, 23)">
-                <span class="font-bold text-lg text-main">:</span>
-                <!-- Минуты -->
-                <input type="tel" id="pick-m" class="time-input" placeholder="00" maxlength="2" onblur="formatTimeInput(this, 59)">
+               <!-- Wheel Time Picker -->
+        <div class="wheel-picker-wrapper">
+            <div class="wheel-highlight"></div>
+
+            <div class="wheel-column" id="wheel-h">
+                <!-- JS заполнит часами -->
+            </div>
+
+            <div class="wheel-separator">:</div>
+
+            <div class="wheel-column" id="wheel-m">
+                <!-- JS заполнит минутами -->
             </div>
         </div>
+
 
         <!-- Календарь -->
         <div class="picker-calendar-container">
