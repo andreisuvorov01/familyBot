@@ -17,6 +17,7 @@ let state = {
 async function init() {
     setupTheme();
     setupEventListeners();
+    initSwipeGestures();
     await loadTasks();
     setInterval(loadTasks, 15000);
 }
@@ -635,6 +636,62 @@ function setupEventListeners() {
     document.getElementById('overlay').onclick = closeModals;
     tg.BackButton.onClick(closeModals);
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
+}
+// === SWIPE TO CLOSE LOGIC ===
+
+function initSwipeGestures() {
+    const sheets = document.querySelectorAll('.bottom-sheet');
+
+    sheets.forEach(sheet => {
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        // 1. Начало касания
+        sheet.addEventListener('touchstart', (e) => {
+            // Если скролл внутри контента не на самом верху, не активируем свайп закрытия
+            if (sheet.scrollTop > 0) return;
+
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            sheet.style.transition = 'none'; // Отключаем плавность для прямого следования за пальцем
+        }, { passive: true });
+
+        // 2. Движение пальца
+        sheet.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+
+            currentY = e.touches[0].clientY;
+            let delta = currentY - startY;
+
+            // Если тянем вниз (delta > 0)
+            if (delta > 0) {
+                e.preventDefault(); // Блокируем скролл страницы
+                sheet.style.transform = `translateY(${delta}px)`;
+            }
+        }, { passive: false });
+
+        // 3. Конец касания
+        sheet.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            // Возвращаем анимацию
+            sheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+            let delta = currentY - startY;
+
+            // Если утянули больше чем на 100px - закрываем
+            if (delta > 100) {
+                // Закрываем всё (и пикеры, и модалки)
+                closeSheets();
+                closeModals();
+            } else {
+                // Возвращаем на место (отскок)
+                sheet.style.transform = ''; // Сброс инлайнового стиля вернет класс .active (translateY(0))
+            }
+        });
+    });
 }
 
 init();
