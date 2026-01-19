@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a9f95470-d0b0-4c95-89fd-5b7ac73227a9" name="Changes" comment="calendar">
-      <change beforePath="$PROJECT_DIR$/app/static/js/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/js/app.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/static/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,14 +100,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1768638915803</updated>
-    </task>
-    <task id="LOCAL-00006" summary="miniapp">
-      <option name="closed" value="true" />
-      <created>1768670615061</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1768670615061</updated>
     </task>
     <task id="LOCAL-00007" summary="miniapp">
       <option name="closed" value="true" />
@@ -493,7 +485,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768781354407</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="calendar">
+      <option name="closed" value="true" />
+      <created>1768781692874</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1768781692874</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

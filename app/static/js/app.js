@@ -534,16 +534,30 @@ function setFilter(type) {
 }
 
 function closeModals() {
-    document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.bottom-sheet').forEach(el => {
+        el.classList.remove('active');
+        el.style.transform = ''; // Сброс стиля от свайпа
+    });
     document.getElementById('overlay').classList.remove('active');
     tg.MainButton.hide();
     tg.BackButton.hide();
     document.activeElement.blur();
 }
 
+// Закрывает только верхние пикеры
 function closeSheets() {
-    document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
-    document.getElementById('overlay').classList.remove('active');
+    // Находим пикеры (id начинается с sheet-)
+    const pickers = document.querySelectorAll('[id^="sheet-"]');
+    pickers.forEach(el => {
+        el.classList.remove('active');
+        el.style.transform = '';
+    });
+
+    // Проверяем, осталась ли открыта родительская модалка
+    const parentActive = document.querySelector('.bottom-sheet.active');
+    if (!parentActive) {
+        document.getElementById('overlay').classList.remove('active');
+    }
 }
 
 // --- Custom Picker Logic ---
@@ -640,58 +654,89 @@ function setupEventListeners() {
 // === SWIPE TO CLOSE LOGIC ===
 
 function initSwipeGestures() {
-    const sheets = document.querySelectorAll('.bottom-sheet');
+    // Вешаем слушатель на document, но обрабатываем только .bottom-sheet.active
+    // Это решает проблему вложенности (мы всегда берем самый верхний sheet)
 
-    sheets.forEach(sheet => {
-        let startY = 0;
-        let currentY = 0;
-        let isDragging = false;
+    let activeSheet = null;
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let startTime = 0;
 
-        // 1. Начало касания
-        sheet.addEventListener('touchstart', (e) => {
-            // Если скролл внутри контента не на самом верху, не активируем свайп закрытия
-            if (sheet.scrollTop > 0) return;
+    document.addEventListener('touchstart', (e) => {
+        // Ищем ближайшую активную шторку (самую верхнюю по z-index)
+        // Для простоты берем последнюю в DOM с классом active
+        const sheets = Array.from(document.querySelectorAll('.bottom-sheet.active'));
+        if (sheets.length === 0) return;
 
-            startY = e.touches[0].clientY;
-            isDragging = true;
-            sheet.style.transition = 'none'; // Отключаем плавность для прямого следования за пальцем
-        }, { passive: true });
+        // Берем самую "свежую" открытую (обычно последняя в списке или с макс z-index)
+        // В нашем случае порядок в DOM: create -> sheet-date. Sheet-date ниже, значит он перекроет create.
+        activeSheet = sheets[sheets.length - 1];
 
-        // 2. Движение пальца
-        sheet.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
+        // Проверяем, что тап был внутри этой шторки или её handle
+        if (!activeSheet.contains(e.target)) return;
 
-            currentY = e.touches[0].clientY;
-            let delta = currentY - startY;
+        // Если внутри шторки есть скролл и мы не наверху - не перехватываем
+        // Исключение: если тянем за handle - всегда тянем шторку
+        const isHandle = e.target.classList.contains('sheet-handle');
+        if (!isHandle && activeSheet.scrollTop > 0) return;
 
-            // Если тянем вниз (delta > 0)
-            if (delta > 0) {
-                e.preventDefault(); // Блокируем скролл страницы
-                sheet.style.transform = `translateY(${delta}px)`;
-            }
-        }, { passive: false });
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+        isDragging = true;
+        activeSheet.style.transition = 'none';
+    }, { passive: true });
 
-        // 3. Конец касания
-        sheet.addEventListener('touchend', () => {
-            if (!isDragging) return;
-            isDragging = false;
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging || !activeSheet) return;
 
-            // Возвращаем анимацию
-            sheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        currentY = e.touches[0].clientY;
+        let delta = currentY - startY;
 
-            let delta = currentY - startY;
+        // Блокируем скролл страницы, если тянем шторку
+        if (delta > 0) {
+            e.preventDefault();
+            // Сопротивление (Rubber band) не нужно при закрытии вниз, там линейно
+            activeSheet.style.transform = `translateY(${delta}px)`;
+        }
+    }, { passive: false });
 
-            // Если утянули больше чем на 100px - закрываем
-            if (delta > 100) {
-                // Закрываем всё (и пикеры, и модалки)
-                closeSheets();
-                closeModals();
-            } else {
-                // Возвращаем на место (отскок)
-                sheet.style.transform = ''; // Сброс инлайнового стиля вернет класс .active (translateY(0))
-            }
-        });
+    document.addEventListener('touchend', (e) => {
+        if (!isDragging || !activeSheet) return;
+        isDragging = false;
+
+        const delta = currentY - startY;
+        const timeDiff = Date.now() - startTime;
+        const velocity = delta / timeDiff; // Скорость свайпа
+
+        // Возвращаем анимацию
+        activeSheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+        // Условия закрытия:
+        // 1. Утянули больше чем на 120px
+        // 2. Смахнули быстро (velocity > 0.5) вниз
+        if (delta > 120 || (delta > 60 && velocity > 0.5)) {
+            closeSpecificSheet(activeSheet);
+        } else {
+            // Отмена (пружина назад)
+            activeSheet.style.transform = '';
+        }
+
+        activeSheet = null;
     });
+}
+
+// Хелпер для закрытия конкретной шторки
+function closeSpecificSheet(sheet) {
+    sheet.classList.remove('active');
+    sheet.style.transform = '';
+
+    // Если это была последняя шторка, убираем оверлей
+    const remaining = document.querySelectorAll('.bottom-sheet.active');
+    if (remaining.length === 0) {
+        document.getElementById('overlay').classList.remove('active');
+        tg.MainButton.hide();
+    }
 }
 
 init();
