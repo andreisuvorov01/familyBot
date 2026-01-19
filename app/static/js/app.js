@@ -658,16 +658,35 @@ function setupEventListeners() {
 }
 
 function initSwipeGestures() {
-    let activeSheet = null, startY = 0, currentY = 0, isDragging = false, startTime = 0;
+    let activeSheet = null;
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let startTime = 0;
+
     document.addEventListener('touchstart', (e) => {
         const sheets = Array.from(document.querySelectorAll('.bottom-sheet.active'));
         if (sheets.length === 0) return;
         activeSheet = sheets[sheets.length - 1];
+
         if (!activeSheet.contains(e.target)) return;
-        // Fix: Игнорируем барабан
-        if (e.target.closest('.wheel-column')) { activeSheet = null; return; }
+
+        // --- ИСПРАВЛЕНИЕ: Игнорируем Инпуты и Барабан ---
+        // Если коснулись поля ввода или текстареа - даем системе сфокусироваться, не тянем шторку
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+            activeSheet = null; // Отменяем слежку
+            return;
+        }
+        // Игнорируем барабан времени (чтобы можно было его крутить)
+        if (e.target.closest('.wheel-column')) {
+            activeSheet = null;
+            return;
+        }
+        // -----------------------------------------------
+
         const isHandle = e.target.classList.contains('sheet-handle');
         if (!isHandle && activeSheet.scrollTop > 0) return;
+
         startY = e.touches[0].clientY;
         startTime = Date.now();
         isDragging = true;
@@ -676,9 +695,15 @@ function initSwipeGestures() {
 
     document.addEventListener('touchmove', (e) => {
         if (!isDragging || !activeSheet) return;
+
         currentY = e.touches[0].clientY;
         let delta = currentY - startY;
+
+        // Тянем только вниз
         if (delta > 0) {
+            // Если мы внутри текстового поля (на всякий случай), не блокируем
+            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
             e.preventDefault();
             activeSheet.style.transform = `translateY(${delta}px)`;
         }
@@ -687,17 +712,29 @@ function initSwipeGestures() {
     document.addEventListener('touchend', (e) => {
         if (!isDragging || !activeSheet) return;
         isDragging = false;
+
         const delta = currentY - startY;
         const velocity = delta / (Date.now() - startTime);
+
         activeSheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
         if (delta > 120 || (delta > 60 && velocity > 0.5)) {
             activeSheet.classList.remove('active');
             activeSheet.style.transform = '';
-            if (activeSheet.id.startsWith('sheet-')) document.getElementById('overlay').onclick = closeModals;
-            else closeModals();
-        } else activeSheet.style.transform = '';
+
+            // Логика закрытия оверлея
+            if (activeSheet.id.startsWith('sheet-')) {
+                // Если закрыли пикер, возвращаем клик на оверлей для закрытия модалки
+                document.getElementById('overlay').onclick = closeModals;
+            } else {
+                closeModals();
+            }
+        } else {
+            activeSheet.style.transform = '';
+        }
         activeSheet = null;
     });
 }
+
 
 init();
