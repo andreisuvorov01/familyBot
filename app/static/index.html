@@ -6,7 +6,7 @@
     <title>Tasks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=25" rel="stylesheet">
+    <link href="/static/css/style.css?v=30" rel="stylesheet">
 </head>
 <body>
 
@@ -32,7 +32,7 @@
         </div>
 
         <!-- Calendar -->
-        <div id="calendar-wrapper" class="hidden mb-6 fade-in">
+        <div id="calendar-wrapper" class="hidden fade-in" style="margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 8px;">
                 <button onclick="changeMonth(-1)" style="color: var(--accent); font-size: 20px;"><i class="fa-solid fa-chevron-left"></i></button>
                 <h2 id="calendar-month-year" style="font-size: 17px; font-weight: 600; text-transform: capitalize;"></h2>
@@ -54,19 +54,19 @@
     <!-- Overlay -->
     <div id="overlay" class="modal-overlay"></div>
 
-    <!-- Create Modal -->
-        <!-- Create Modal -->
-       <!-- Create Modal -->
+    <!-- === Create Modal (CLEAN VERSION) === -->
     <div id="create-modal" class="bottom-sheet" style="background-color: var(--bg-page);">
         <div class="sheet-handle"></div>
         <h2 class="text-xl font-bold mb-5 text-center text-main">Новая задача</h2>
 
-        <!-- Название и Описание -->
+        <!-- Название -->
         <input type="text" id="new-title" class="input-standalone" placeholder="Название задачи" style="background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+
+        <!-- Описание -->
         <textarea id="new-desc" rows="3" class="input-standalone" style="background: var(--bg-card); resize: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" placeholder="Заметки"></textarea>
 
-        <!-- Новые красивые кнопки Выбора -->
-       <div class="visibility-grid">
+        <!-- Видимость (Большие карточки) -->
+        <div class="visibility-grid">
             <label>
                 <input type="radio" name="visibility" value="common" checked hidden>
                 <div class="vis-card common">
@@ -83,15 +83,13 @@
             </label>
         </div>
 
-        <!-- Кастомные селекторы (Fake Inputs) -->
+        <!-- Настройки (Кнопки-триггеры для пикеров) -->
         <div class="form-group" style="background: transparent; box-shadow: none;">
-            <!-- Дата -->
             <div id="trigger-date" class="fake-input" onclick="openDateSheet()">
                 <span class="label">Дата</span>
                 <span class="value placeholder" id="val-date">Нет</span>
             </div>
 
-            <!-- Повтор -->
             <div id="trigger-repeat" class="fake-input" onclick="openRepeatSheet()">
                 <span class="label">Повтор</span>
                 <span class="value placeholder" id="val-repeat">Нет</span>
@@ -99,13 +97,13 @@
         </div>
     </div>
 
-    <!-- === НОВЫЕ МОДАЛКИ (ACTION SHEETS) === -->
+    <!-- === Custom Action Sheets === -->
 
-    <!-- 1. Выбор Повтора -->
+    <!-- 1. Repeat Picker -->
     <div id="sheet-repeat" class="bottom-sheet">
         <div class="sheet-handle"></div>
         <h3 class="text-center font-bold mb-4 text-lg">Повтор</h3>
-        <div class="bg-[var(--bg-card)] rounded-xl overflow-hidden">
+        <div class="bg-[var(--bg-card)] rounded-xl overflow-hidden shadow-sm">
             <div class="action-sheet-item" onclick="selectRepeat(null)">Нет</div>
             <div class="action-sheet-item" onclick="selectRepeat('daily')">Каждый день</div>
             <div class="action-sheet-item" onclick="selectRepeat('weekly')">Каждую неделю</div>
@@ -113,90 +111,41 @@
         </div>
     </div>
 
-    <!-- 2. Выбор Даты (Smart Picker) -->
+    <!-- 2. Date Picker -->
     <div id="sheet-date" class="bottom-sheet">
         <div class="sheet-handle"></div>
         <h3 class="text-center font-bold mb-4 text-lg">Выберите дату</h3>
 
-        <!-- Быстрые кнопки -->
         <div class="flex gap-2 mb-4">
-            <button onclick="selectQuickDate(0)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition">Сегодня</button>
-            <button onclick="selectQuickDate(1)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition">Завтра</button>
+            <button onclick="selectQuickDate(0)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition text-main">Сегодня</button>
+            <button onclick="selectQuickDate(1)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition text-main">Завтра</button>
         </div>
 
-        <!-- Выбор времени -->
         <div class="bg-[var(--bg-card)] rounded-xl p-4 mb-4 shadow-sm flex items-center justify-between">
-            <span class="font-medium">Время</span>
-            <input type="time" id="time-picker" value="12:00" class="bg-[var(--bg-page)] rounded-lg p-2 font-bold w-24 text-center">
+            <span class="font-medium text-main">Время</span>
+            <input type="time" id="time-picker" value="12:00" class="bg-[var(--bg-page)] rounded-lg p-2 font-bold w-24 text-center text-main border-none outline-none">
         </div>
 
-        <!-- Календарь (реюзаем наш стиль) -->
         <div class="bg-[var(--bg-card)] rounded-xl p-4 shadow-sm">
-            <!-- Здесь мы сгенерируем мини-календарь через JS -->
             <div id="picker-calendar-grid" class="calendar-grid"></div>
         </div>
 
         <button onclick="clearDate()" class="w-full mt-4 py-3 text-red-500 font-medium">Очистить дату</button>
     </div>
 
-
-            <!-- Повтор -->
-            <div class="form-row">
-                <span class="form-label">Повтор</span>
-                <div style="flex: 1; margin-left: 10px;">
-                    <select id="new-repeat">
-                        <option value="">Нет</option>
-                        <option value="daily">Каждый день</option>
-                        <option value="weekly">Каждую неделю</option>
-                        <option value="monthly">Каждый месяц</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. Видимость (Segmented Control) -->
-        <div class="segment-control">
-            <label style="flex: 1; cursor: pointer;">
-                <input type="radio" name="visibility" value="common" checked hidden>
-                <div class="segment-option">
-                    <i class="fa-solid fa-users"></i> Семья
-                </div>
-            </label>
-            <label style="flex: 1; cursor: pointer;">
-                <input type="radio" name="visibility" value="private" hidden>
-                <div class="segment-option">
-                    <i class="fa-solid fa-lock"></i> Личное
-                </div>
-            </label>
-        </div>
-    </div>
-
-
-        <div class="visibility-selector">
-            <label style="flex:1; cursor: pointer;">
-                <input type="radio" name="visibility" value="common" checked hidden>
-                <div class="visibility-option"><i class="fa-solid fa-users"></i> Семья</div>
-            </label>
-            <label style="flex:1; cursor: pointer;">
-                <input type="radio" name="visibility" value="private" hidden>
-                <div class="visibility-option"><i class="fa-solid fa-lock"></i> Личное</div>
-            </label>
-        </div>
-    </div>
-
-    <!-- Detail Modal -->
+    <!-- === Detail Modal === -->
     <div id="detail-modal" class="bottom-sheet">
         <div class="sheet-handle"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
-            <h2 id="detail-title" style="font-size: 24px; font-weight: 800; margin: 0; flex: 1; line-height: 1.2;"></h2>
+            <h2 id="detail-title" class="text-2xl font-bold leading-tight mr-2 flex-1 break-words text-main"></h2>
             <div style="display: flex; gap: 16px;">
-                <button onclick="openEditMode()" style="font-size: 20px; color: var(--accent);"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteTask()" style="font-size: 20px; color: #ef4444;"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="openEditMode()" class="text-accent text-lg"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteTask()" class="text-red-500 text-lg"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
 
         <div style="background-color: var(--bg-page); padding: 16px; border-radius: 16px; margin-bottom: 24px;">
-            <p id="detail-desc" style="font-size: 16px; white-space: pre-wrap; margin: 0; opacity: 0.9; line-height: 1.5;"></p>
+            <p id="detail-desc" style="font-size: 16px; white-space: pre-wrap; margin: 0; opacity: 0.9; line-height: 1.5; color: var(--text-main);"></p>
         </div>
 
         <div style="margin-bottom: 24px;">
