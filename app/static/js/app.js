@@ -193,22 +193,20 @@ function renderList() {
 }
 
 // === WHEEL TIME PICKER (Optimized) ===
+const ITEM_HEIGHT = 34;
+
 function initTimeSelectors() {
     const hCol = document.getElementById('wheel-h');
     const mCol = document.getElementById('wheel-m');
 
-    // Очистка перед генерацией
+    // Защита от дублирования при повторном открытии
+    if (hCol.children.length > 0) return;
+
     hCol.innerHTML = '';
     mCol.innerHTML = '';
 
-    // Часы 00-23
-    for (let i = 0; i < 24; i++) {
-        createWheelItem(hCol, i);
-    }
-    // Минуты 00-59
-    for (let i = 0; i < 60; i++) {
-        createWheelItem(mCol, i);
-    }
+    for (let i = 0; i < 24; i++) createWheelItem(hCol, i);
+    for (let i = 0; i < 60; i++) createWheelItem(mCol, i);
 
     setupWheelObserver(hCol, (val) => selectedH = val);
     setupWheelObserver(mCol, (val) => selectedM = val);
@@ -219,6 +217,7 @@ function createWheelItem(container, val) {
     div.className = 'wheel-item';
     div.innerText = String(val).padStart(2, '0');
     div.dataset.val = val;
+    // Клик плавно скроллит к элементу
     div.onclick = () => {
         container.scrollTo({ top: val * ITEM_HEIGHT, behavior: 'smooth' });
     };
@@ -227,16 +226,21 @@ function createWheelItem(container, val) {
 
 function setupWheelObserver(container, callback) {
     let isScrolling = false;
+
     const update = () => {
+        // Точная математика индекса
         const index = Math.round(container.scrollTop / ITEM_HEIGHT);
-        const maxIndex = container.children.length - 1;
 
         Array.from(container.children).forEach((child, idx) => {
             if (idx === index) {
-                child.classList.add('active');
-                callback(parseInt(child.dataset.val));
+                if (!child.classList.contains('active')) {
+                    child.classList.add('active');
+                    callback(parseInt(child.dataset.val));
+                }
             } else {
-                child.classList.remove('active');
+                if (child.classList.contains('active')) {
+                    child.classList.remove('active');
+                }
             }
         });
         isScrolling = false;
@@ -253,12 +257,28 @@ function setupWheelObserver(container, callback) {
 function setWheelTime(h, m) {
     const hCol = document.getElementById('wheel-h');
     const mCol = document.getElementById('wheel-m');
-    // Прямой скролл без анимации для мгновенной установки
-    if(hCol) hCol.scrollTop = h * ITEM_HEIGHT;
-    if(mCol) mCol.scrollTop = m * ITEM_HEIGHT;
 
-    selectedH = h;
-    selectedM = m;
+    // Устанавливаем скролл мгновенно
+    if (hCol) {
+        hCol.scrollTop = h * ITEM_HEIGHT;
+        // Принудительно обновляем класс active (так как событие scroll может не успеть)
+        updateActiveItemManual(hCol, h);
+        selectedH = h;
+    }
+
+    if (mCol) {
+        mCol.scrollTop = m * ITEM_HEIGHT;
+        updateActiveItemManual(mCol, m);
+        selectedM = m;
+    }
+}
+
+// Вспомогательная функция для мгновенной подсветки при открытии
+function updateActiveItemManual(container, targetVal) {
+    Array.from(container.children).forEach(child => {
+        if (parseInt(child.dataset.val) === targetVal) child.classList.add('active');
+        else child.classList.remove('active');
+    });
 }
 
 // === SHEETS LOGIC ===

@@ -563,72 +563,69 @@ input[value="private"]:checked + .vis-card {
 .time-input:focus {
     background-color: rgba(128, 128, 128, 0.1) !important;
 }
-/* === WHEEL PICKER (Compact & Precise) === */
+/* === WHEEL PICKER (Fixed) === */
 .wheel-picker-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 16px;
-    padding: 0;
     position: relative;
-    height: 120px; /* Компактная высота */
+    height: 120px;
     background: var(--bg-card);
-    /* Жесткая маска для эффекта "барабана" */
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
     border-radius: 12px;
 }
 
-/* Центральная линия */
 .wheel-highlight {
     position: absolute;
     top: 50%; left: 20px; right: 20px;
-    height: 34px; /* Высота строки */
+    height: 34px;
     transform: translateY(-50%);
     background: rgba(128, 128, 128, 0.1);
     border-radius: 8px;
-    z-index: 0;
     pointer-events: none;
+    z-index: 0;
 }
 
 .wheel-column {
     height: 100%;
     width: 60px;
     overflow-y: auto;
-    /* Важно: заставляем скролл останавливаться ровно на элементах */
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y mandatory; /* Обязательное прилипание */
     -webkit-overflow-scrolling: touch;
     z-index: 1;
-    /* Отступы, чтобы первый элемент мог встать в центр */
-    /* (Высота контейнера 120 - Высота элемента 34) / 2 = 43px */
-    padding-top: 43px;
+    /* Важно: отступы для центрирования первого/последнего элемента */
+    padding-top: 43px;    /* (120px контейнер - 34px элемент) / 2 */
     padding-bottom: 43px;
-    /* Скрываем скроллбар */
     scrollbar-width: none;
 }
 .wheel-column::-webkit-scrollbar { display: none; }
 
 .wheel-item {
-    height: 34px; /* Фиксированная высота элемента */
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 18px;
     font-weight: 500;
     color: var(--text-hint);
-    scroll-snap-align: center; /* Центрирование */
-    transition: all 0.1s;
+    scroll-snap-align: center; /* Центрирование элемента */
+    transition: color 0.1s, opacity 0.1s; /* Убрали transform/font-size */
     cursor: pointer;
+    opacity: 0.5; /* Неактивные элементы полупрозрачные */
 }
 
+/* Активный элемент: только цвет и прозрачность, БЕЗ изменения размера */
 .wheel-item.active {
     color: var(--accent);
-    font-size: 22px;
     font-weight: 700;
-    transform: scale(1.1);
+    opacity: 1;
+    /* transform: scale(1.1); <--- УДАЛЕНО, это вызывало лаги */
 }
 
 .wheel-separator {
     font-size: 20px; font-weight: 700; color: var(--text-main); margin-top: -2px; z-index: 2;
 }
+
 
