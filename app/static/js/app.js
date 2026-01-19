@@ -304,29 +304,35 @@ function createWheelItem(container, value) {
     container.appendChild(div);
 }
 function setupWheelObserver(container, callback) {
-    // Используем событие scroll для мгновенной реакции
-    container.addEventListener('scroll', () => {
-        // Вычисляем индекс центрального элемента
-        // scrollTop - это отступ сверху. Делим на высоту элемента.
-        let index = Math.round(container.scrollTop / ITEM_HEIGHT);
+    let isScrolling = false;
 
-        // Ограничиваем индекс границами списка
-        const maxIndex = container.children.length - 1;
-        if (index < 0) index = 0;
-        if (index > maxIndex) index = maxIndex;
+    const updateActiveItem = () => {
+        const index = Math.round(container.scrollTop / ITEM_HEIGHT);
 
-        // Обновляем стили
+        // Обновляем классы (только если изменился индекс, можно оптимизировать еще, но это уже быстро)
         Array.from(container.children).forEach((child, idx) => {
             if (idx === index) {
-                child.classList.add('active');
-                // Передаем значение наружу
-                callback(parseInt(child.dataset.val));
+                if (!child.classList.contains('active')) {
+                    child.classList.add('active');
+                    callback(parseInt(child.dataset.val));
+                }
             } else {
-                child.classList.remove('active');
+                if (child.classList.contains('active')) {
+                    child.classList.remove('active');
+                }
             }
         });
-    });
+        isScrolling = false;
+    };
+
+    container.addEventListener('scroll', () => {
+        if (!isScrolling) {
+            window.requestAnimationFrame(updateActiveItem);
+            isScrolling = true;
+        }
+    }, { passive: true }); // passive улучшает скролл
 }
+
 
 function setWheelTime(h, m) {
     const hCol = document.getElementById('wheel-h');
@@ -666,14 +672,30 @@ function setupEventListeners() {
 }
 
 function initSwipeGestures() {
-    let activeSheet = null, startY = 0, currentY = 0, isDragging = false, startTime = 0;
+    let activeSheet = null;
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let startTime = 0;
+
     document.addEventListener('touchstart', (e) => {
         const sheets = Array.from(document.querySelectorAll('.bottom-sheet.active'));
         if (sheets.length === 0) return;
-        activeSheet = sheets[sheets.length - 1];
+        activeSheet = sheets[sheets.length - 1]; // Самый верхний
+
         if (!activeSheet.contains(e.target)) return;
+
+        // ВАЖНОЕ ИСПРАВЛЕНИЕ:
+        // Если мы касаемся барабана времени, ИГНОРИРУЕМ свайп закрытия
+        if (e.target.closest('.wheel-column')) {
+            activeSheet = null; // Забываем про шторку, даем скроллить барабан
+            return;
+        }
+
         const isHandle = e.target.classList.contains('sheet-handle');
+        // Если скролл внутри шторки не наверху - не тянем
         if (!isHandle && activeSheet.scrollTop > 0) return;
+
         startY = e.touches[0].clientY;
         startTime = Date.now();
         isDragging = true;
@@ -685,23 +707,28 @@ function initSwipeGestures() {
         currentY = e.touches[0].clientY;
         let delta = currentY - startY;
         if (delta > 0) {
-            e.preventDefault();
+            e.preventDefault(); // Блокируем скролл страницы
             activeSheet.style.transform = `translateY(${delta}px)`;
         }
     }, { passive: false });
 
+    // ... (touchend остается без изменений) ...
     document.addEventListener('touchend', (e) => {
         if (!isDragging || !activeSheet) return;
         isDragging = false;
         const delta = currentY - startY;
         const velocity = delta / (Date.now() - startTime);
+
         activeSheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
         if (delta > 120 || (delta > 60 && velocity > 0.5)) {
             activeSheet.classList.remove('active');
             activeSheet.style.transform = '';
             if (activeSheet.id.startsWith('sheet-')) document.getElementById('overlay').onclick = closeModals;
             else closeModals();
-        } else activeSheet.style.transform = '';
+        } else {
+            activeSheet.style.transform = '';
+        }
         activeSheet = null;
     });
 }
