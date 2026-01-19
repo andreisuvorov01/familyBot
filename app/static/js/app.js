@@ -154,13 +154,11 @@ function renderList() {
         const el = document.createElement('div');
         el.className = 'task-card';
 
-        // УМНАЯ АНИМАЦИЯ: Только если задачи не было в списке ранее
         if (!renderedTaskIds.has(task.id)) {
             el.classList.add('animate-enter');
             el.style.animationDelay = `${index * 0.05}s`;
             renderedTaskIds.add(task.id);
         } else {
-            // Иначе показываем сразу
             el.style.opacity = isDone ? '0.6' : '1';
             el.style.transform = 'translateY(0)';
         }
@@ -192,14 +190,12 @@ function renderList() {
     });
 }
 
-// === WHEEL TIME PICKER (Optimized) ===
-const ITEM_HEIGHT = 34;
-
+// === WHEEL TIME PICKER (Fixed) ===
 function initTimeSelectors() {
     const hCol = document.getElementById('wheel-h');
     const mCol = document.getElementById('wheel-m');
 
-    // Защита от дублирования при повторном открытии
+    // Защита от дублирования
     if (hCol.children.length > 0) return;
 
     hCol.innerHTML = '';
@@ -217,7 +213,6 @@ function createWheelItem(container, val) {
     div.className = 'wheel-item';
     div.innerText = String(val).padStart(2, '0');
     div.dataset.val = val;
-    // Клик плавно скроллит к элементу
     div.onclick = () => {
         container.scrollTo({ top: val * ITEM_HEIGHT, behavior: 'smooth' });
     };
@@ -226,21 +221,14 @@ function createWheelItem(container, val) {
 
 function setupWheelObserver(container, callback) {
     let isScrolling = false;
-
     const update = () => {
-        // Точная математика индекса
         const index = Math.round(container.scrollTop / ITEM_HEIGHT);
-
         Array.from(container.children).forEach((child, idx) => {
             if (idx === index) {
-                if (!child.classList.contains('active')) {
-                    child.classList.add('active');
-                    callback(parseInt(child.dataset.val));
-                }
+                child.classList.add('active');
+                callback(parseInt(child.dataset.val));
             } else {
-                if (child.classList.contains('active')) {
-                    child.classList.remove('active');
-                }
+                child.classList.remove('active');
             }
         });
         isScrolling = false;
@@ -258,22 +246,18 @@ function setWheelTime(h, m) {
     const hCol = document.getElementById('wheel-h');
     const mCol = document.getElementById('wheel-m');
 
-    // Устанавливаем скролл мгновенно
-    if (hCol) {
+    if(hCol) {
         hCol.scrollTop = h * ITEM_HEIGHT;
-        // Принудительно обновляем класс active (так как событие scroll может не успеть)
         updateActiveItemManual(hCol, h);
         selectedH = h;
     }
-
-    if (mCol) {
+    if(mCol) {
         mCol.scrollTop = m * ITEM_HEIGHT;
         updateActiveItemManual(mCol, m);
         selectedM = m;
     }
 }
 
-// Вспомогательная функция для мгновенной подсветки при открытии
 function updateActiveItemManual(container, targetVal) {
     Array.from(container.children).forEach(child => {
         if (parseInt(child.dataset.val) === targetVal) child.classList.add('active');
@@ -288,7 +272,6 @@ function openDateSheet() {
     renderPickerCalendar();
 
     let d = state.tempDate ? new Date(state.tempDate) : new Date();
-    // Небольшая задержка чтобы DOM отрисовался
     setTimeout(() => setWheelTime(d.getHours(), d.getMinutes()), 50);
 
     document.getElementById('overlay').onclick = () => {
@@ -298,8 +281,6 @@ function openDateSheet() {
     };
 }
 
-// ... Остальные функции пикеров (selectQuickDate, applyDate, clearDate...)
-// Скопируй их из предыдущего ответа, они корректны.
 function selectQuickDate(offsetDays) {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
@@ -321,6 +302,41 @@ function clearDate() {
     document.getElementById('val-date').innerText = "Нет";
     document.getElementById('val-date').classList.add('placeholder');
     document.getElementById('sheet-date').classList.remove('active');
+}
+
+function renderPickerCalendar() {
+    const grid = document.getElementById('picker-calendar-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    const now = new Date();
+    const year = pickerDate.getFullYear();
+    const month = pickerDate.getMonth();
+    const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+    document.getElementById('picker-month-year').innerText = `${monthNames[month]} ${year}`;
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+    for (let i = 0; i < adjustedFirstDay; i++) {
+        const div = document.createElement('div');
+        grid.appendChild(div);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        el.innerHTML = `<span>${day}</span>`;
+        if (day === now.getDate() && month === now.getMonth() && year === now.getFullYear()) el.classList.add('today');
+        if (state.tempDate && day === state.tempDate.getDate() && month === state.tempDate.getMonth() && year === state.tempDate.getFullYear()) el.classList.add('selected');
+        el.onclick = () => {
+            const selected = new Date(year, month, day);
+            applyDate(selected);
+        };
+        grid.appendChild(el);
+    }
+}
+
+function changePickerMonth(delta) {
+    pickerDate.setMonth(pickerDate.getMonth() + delta);
+    renderPickerCalendar();
 }
 
 function openRepeatSheet() {
@@ -385,7 +401,6 @@ function renderCalendar() {
         const dayTasks = state.tasks.filter(t => {
             const matches = checkTaskOnDate(t, currentDate);
             if (matches) return true;
-            // Для Сегодня показываем просроченные
             if (currentDate.getTime() === todayMidnight.getTime() && t.status !== 'done' && t.deadline) {
                 let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
                 if (new Date(dStr) < today) return true;
@@ -414,7 +429,6 @@ function renderCalendar() {
     }
 }
 
-// Calendar helpers
 function selectDate(dateStr) {
     tg.HapticFeedback.selectionChanged();
     state.selectedDateStr = dateStr;
@@ -422,52 +436,20 @@ function selectDate(dateStr) {
     renderCalendar();
     renderList();
 }
+
 function resetCalendarFilter() {
     state.selectedDateStr = null;
     document.getElementById('reset-filter-btn').style.display = 'none';
     renderCalendar();
     renderList();
 }
-function renderPickerCalendar() {
-    // ... (код календаря в пикере такой же, как в renderCalendar, только с кликом на applyDate)
-    const grid = document.getElementById('picker-calendar-grid');
-    if(!grid) return;
-    grid.innerHTML = '';
-    const now = new Date();
-    const year = pickerDate.getFullYear();
-    const month = pickerDate.getMonth();
-    const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
-    document.getElementById('picker-month-year').innerText = `${monthNames[month]} ${year}`;
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-    for (let i = 0; i < adjustedFirstDay; i++) {
-        const div = document.createElement('div');
-        grid.appendChild(div);
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-        const el = document.createElement('div');
-        el.className = 'calendar-day';
-        el.innerHTML = `<span>${day}</span>`;
-        if (day === now.getDate() && month === now.getMonth() && year === now.getFullYear()) el.classList.add('today');
-        if (state.tempDate && day === state.tempDate.getDate() && month === state.tempDate.getMonth() && year === state.tempDate.getFullYear()) el.classList.add('selected');
-        el.onclick = () => {
-            const selected = new Date(year, month, day);
-            applyDate(selected);
-        };
-        grid.appendChild(el);
-    }
-}
-function changePickerMonth(delta) {
-    pickerDate.setMonth(pickerDate.getMonth() + delta);
-    renderPickerCalendar();
-}
 
-// --- MODALS ---
+// --- MODALS & FORMS ---
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('medium');
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
+
     state.tempDate = null;
     state.tempRepeat = null;
     document.getElementById('val-date').innerText = 'Нет';
@@ -478,6 +460,7 @@ function openCreateModal() {
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
     document.getElementById('overlay').onclick = closeModals;
+
     setTimeout(() => document.getElementById('new-title').focus(), 300);
     tg.MainButton.setText("СОЗДАТЬ");
     tg.MainButton.show();
@@ -494,6 +477,7 @@ function openEditMode() {
 
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
+
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
@@ -550,6 +534,7 @@ function openDetail(task) {
     tg.BackButton.show();
 }
 
+// --- SUBMIT ---
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
@@ -610,7 +595,7 @@ async function addSubtask() {
 }
 
 async function deleteTask() {
-    tg.showConfirm("Удалить?", async (ok) => {
+    tg.showConfirm("Удалить задачу?", async (ok) => {
         if(ok) {
             closeModals();
             await api.deleteTask(state.currentTask.id);
@@ -625,7 +610,6 @@ function renderSubtasks(subtasks) {
     subtasks.forEach(sub => {
         const el = document.createElement('div');
         el.className = 'flex items-center gap-3 py-3 border-b border-[var(--text-hint)]/10 last:border-0';
-        el.style.borderBottom = '1px solid rgba(128,128,128,0.1)';
         el.innerHTML = `
             <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''}>
             <span class="text-sm flex-1 text-main ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
@@ -639,6 +623,7 @@ function renderSubtasks(subtasks) {
     });
 }
 
+// --- UTILS ---
 function setFilter(type) {
     state.filter = type;
     tg.HapticFeedback.selectionChanged();
@@ -679,10 +664,8 @@ function initSwipeGestures() {
         if (sheets.length === 0) return;
         activeSheet = sheets[sheets.length - 1];
         if (!activeSheet.contains(e.target)) return;
-
         // Fix: Игнорируем барабан
         if (e.target.closest('.wheel-column')) { activeSheet = null; return; }
-
         const isHandle = e.target.classList.contains('sheet-handle');
         if (!isHandle && activeSheet.scrollTop > 0) return;
         startY = e.touches[0].clientY;
