@@ -114,23 +114,42 @@
     <!-- 2. Date Picker -->
     <div id="sheet-date" class="bottom-sheet">
         <div class="sheet-handle"></div>
-        <h3 class="text-center font-bold mb-4 text-lg">Выберите дату</h3>
+        <h3 class="text-xl font-bold mb-5 text-center text-main">Дата и время</h3>
 
-        <div class="flex gap-2 mb-4">
-            <button onclick="selectQuickDate(0)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition text-main">Сегодня</button>
-            <button onclick="selectQuickDate(1)" class="flex-1 bg-[var(--bg-card)] p-3 rounded-xl font-medium shadow-sm active:scale-95 transition text-main">Завтра</button>
+        <!-- Быстрые действия -->
+        <div class="date-quick-actions">
+            <button onclick="selectQuickDate(0)" class="date-btn">Сегодня</button>
+            <button onclick="selectQuickDate(1)" class="date-btn">Завтра</button>
         </div>
 
-        <div class="bg-[var(--bg-card)] rounded-xl p-4 mb-4 shadow-sm flex items-center justify-between">
-            <span class="font-medium text-main">Время</span>
-            <input type="time" id="time-picker" value="12:00" class="bg-[var(--bg-page)] rounded-lg p-2 font-bold w-24 text-center text-main border-none outline-none">
+        <!-- Выбор времени (Часы : Минуты) -->
+        <div class="time-selector-container">
+            <span class="time-label">Время выполнения</span>
+            <div class="time-inputs">
+                <!-- Генерируется JS-ом или статично -->
+                <select id="pick-h" class="time-select">
+                    <!-- 00..23 -->
+                </select>
+                <span class="time-separator">:</span>
+                <select id="pick-m" class="time-select">
+                    <!-- 00..55 -->
+                </select>
+            </div>
         </div>
 
-        <div class="bg-[var(--bg-card)] rounded-xl p-4 shadow-sm">
+        <!-- Календарь -->
+        <div class="picker-calendar-container">
+            <!-- Шапка календаря -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
+                <button onclick="changePickerMonth(-1)" style="color: var(--accent); font-size: 18px;"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2 id="picker-month-year" style="font-size: 16px; font-weight: 600; text-transform: capitalize; color: var(--text-main);"></h2>
+                <button onclick="changePickerMonth(1)" style="color: var(--accent); font-size: 18px;"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
             <div id="picker-calendar-grid" class="calendar-grid"></div>
         </div>
 
-        <button onclick="clearDate()" class="w-full mt-4 py-3 text-red-500 font-medium">Очистить дату</button>
+        <button onclick="clearDate()" class="btn-destructive">Убрать дату</button>
     </div>
 
     <!-- === Detail Modal === -->

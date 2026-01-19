@@ -18,6 +18,7 @@ async function init() {
     setupTheme();
     setupEventListeners();
     initSwipeGestures();
+    initTimeSelectors()
     await loadTasks();
     setInterval(loadTasks, 15000);
 }
@@ -586,63 +587,99 @@ function selectRepeat(value) {
 function openDateSheet() {
     document.getElementById('sheet-date').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+
+    // Сбрасываем пикер на текущий месяц (или на месяц выбранной даты)
+    if (state.tempDate) {
+        pickerDate = new Date(state.tempDate);
+        // Устанавливаем время в селекторы
+        document.getElementById('pick-h').value = String(state.tempDate.getHours()).padStart(2, '0');
+        // Округляем минуты до ближайших 5 (если шаг 5)
+        let m = Math.round(state.tempDate.getMinutes() / 5) * 5;
+        if(m===60) m=55;
+        document.getElementById('pick-m').value = String(m).padStart(2, '0');
+    } else {
+        pickerDate = new Date();
+    }
+
     renderPickerCalendar();
-    document.getElementById('overlay').onclick = () => {
-        closeSheets();
-        document.getElementById('create-modal').classList.add('active');
-        document.getElementById('overlay').classList.add('active');
-    };
 }
 
-function selectQuickDate(offsetDays) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    applyDate(d);
-}
-
-function applyDate(dateObj) {
-    const timeStr = document.getElementById('time-picker').value || "12:00";
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    dateObj.setHours(hours);
-    dateObj.setMinutes(minutes);
-    state.tempDate = dateObj;
-
-    const el = document.getElementById('val-date');
-    el.innerText = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
-    el.classList.remove('placeholder');
-
-    closeSheets();
-    document.getElementById('create-modal').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-}
-
-function clearDate() {
-    state.tempDate = null;
-    document.getElementById('val-date').innerText = "Нет";
-    document.getElementById('val-date').classList.add('placeholder');
-    closeSheets();
-    document.getElementById('create-modal').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
+function changePickerMonth(delta) {
+    pickerDate.setMonth(pickerDate.getMonth() + delta);
+    renderPickerCalendar();
 }
 
 function renderPickerCalendar() {
     const grid = document.getElementById('picker-calendar-grid');
     if(!grid) return;
     grid.innerHTML = '';
-    const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+    const year = pickerDate.getFullYear();
+    const month = pickerDate.getMonth();
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+    document.getElementById('picker-month-year').innerText = `${monthNames[month]} ${year}`;
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+    // Пустые
+    for (let i = 0; i < adjustedFirstDay; i++) {
+        const div = document.createElement('div');
+        grid.appendChild(div);
+    }
+
+    const today = new Date();
 
     for (let day = 1; day <= daysInMonth; day++) {
         const el = document.createElement('div');
         el.className = 'calendar-day';
         el.innerHTML = `<span>${day}</span>`;
-        if (day === now.getDate()) el.classList.add('today');
+
+        // Подсветка "Сегодня"
+        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            el.classList.add('today');
+        }
+
+        // Подсветка "Выбрано" (если совпадает с tempDate)
+        if (state.tempDate &&
+            day === state.tempDate.getDate() &&
+            month === state.tempDate.getMonth() &&
+            year === state.tempDate.getFullYear()) {
+            el.classList.add('selected');
+        }
+
         el.onclick = () => {
-            const selected = new Date(now.getFullYear(), now.getMonth(), day);
+            // При клике на день берем год/месяц из календаря + время из селекторов
+            const h = document.getElementById('pick-h').value;
+            const m = document.getElementById('pick-m').value;
+
+            const selected = new Date(year, month, day);
+            selected.setHours(parseInt(h), parseInt(m));
+
             applyDate(selected);
         };
         grid.appendChild(el);
     }
+}
+
+// Обновленная applyDate
+function applyDate(dateObj) {
+    state.tempDate = dateObj;
+
+    // Если время не передали (быстрый выбор), берем из селекторов
+    const h = document.getElementById('pick-h').value;
+    const m = document.getElementById('pick-m').value;
+    state.tempDate.setHours(parseInt(h), parseInt(m));
+
+    const el = document.getElementById('val-date');
+    el.innerText = state.tempDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
+    el.classList.remove('placeholder');
+
+    // Закрываем только пикер, возвращаемся к созданию
+    document.getElementById('sheet-date').classList.remove('active');
+    // Не убираем оверлей, т.к. под ним еще create-modal
 }
 
 function setupEventListeners() {
@@ -738,5 +775,24 @@ function closeSpecificSheet(sheet) {
         tg.MainButton.hide();
     }
 }
+function initTimeSelectors() {
+    const hSelect = document.getElementById('pick-h');
+    const mSelect = document.getElementById('pick-m');
 
+    // Часы 00-23
+    for(let i=0; i<24; i++) {
+        let val = i.toString().padStart(2, '0');
+        hSelect.innerHTML += `<option value="${val}">${val}</option>`;
+    }
+
+    // Минуты 00-55 (шаг 5 минут для удобства, или по 1 минуте)
+    for(let i=0; i<60; i+=5) {
+        let val = i.toString().padStart(2, '0');
+        mSelect.innerHTML += `<option value="${val}">${val}</option>`;
+    }
+
+    // Дефолт 12:00
+    hSelect.value = "12";
+    mSelect.value = "00";
+}
 init();

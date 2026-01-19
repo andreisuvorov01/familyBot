@@ -479,3 +479,70 @@ input[value="private"]:checked + .vis-card {
 .time-picker-row select {
     width: auto; background-color: var(--bg-page); border-radius: 8px; font-weight: bold; font-size: 20px;
 }
+.date-quick-actions {
+    display: flex; gap: 8px; margin-bottom: 20px;
+}
+.date-btn {
+    flex: 1;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    text-align: center;
+    transition: 0.2s;
+    border: 1px solid transparent;
+}
+.date-btn:active { background-color: var(--text-hint); opacity: 0.2; }
+
+/* Кастомный выбор времени (Большие цифры) */
+.time-selector-container {
+    background-color: var(--bg-app);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.time-label {
+    font-size: 15px; font-weight: 600; color: var(--text-hint); text-transform: uppercase;
+}
+.time-inputs {
+    display: flex; align-items: center; gap: 4px;
+}
+/* Скрываем стандартный селект, показываем только текст */
+.time-select {
+    appearance: none; -webkit-appearance: none;
+    background: transparent; border: none;
+    font-size: 28px; font-weight: 700;
+    color: var(--accent);
+    padding: 0; margin: 0;
+    width: auto;
+    text-align: center;
+}
+.time-separator {
+    font-size: 24px; font-weight: 700; color: var(--text-hint); padding-bottom: 4px;
+}
+
+/* Календарь в пикере */
+.picker-calendar-container {
+    background-color: var(--bg-app);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+/* Кнопка Очистить (Красная) */
+.btn-destructive {
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+    transition: 0.2s;
+}
+.btn-destructive:active { background-color: rgba(239, 68, 68, 0.2); }
