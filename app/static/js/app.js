@@ -509,30 +509,56 @@ function openEditMode() {
 function openDetail(task) {
     state.currentTask = task;
     const isDone = task.status === 'done';
-    document.getElementById('detail-title').innerText = task.title;
-    document.getElementById('detail-title').style.textDecoration = isDone ? 'line-through' : 'none';
-    document.getElementById('detail-title').style.opacity = isDone ? '0.5' : '1';
 
-    document.getElementById('detail-desc').innerText = (task.description && task.description.trim()) ? task.description : "Нет описания";
+    // 1. Заголовок
+    const titleEl = document.getElementById('detail-title');
+    titleEl.innerText = task.title;
+    if (isDone) {
+        titleEl.style.textDecoration = 'line-through';
+        titleEl.style.opacity = '0.5';
+    } else {
+        titleEl.style.textDecoration = 'none';
+        titleEl.style.opacity = '1';
+    }
 
+    // 2. Описание (Стиль для пустого/заполненного)
+    const descEl = document.getElementById('detail-desc');
+    if (task.description && task.description.trim()) {
+        descEl.innerText = task.description;
+        descEl.style.opacity = '1';
+        descEl.style.fontStyle = 'normal';
+        descEl.style.color = 'var(--text-main)';
+    } else {
+        descEl.innerText = "Нет описания";
+        descEl.style.opacity = '0.5';
+        descEl.style.fontStyle = 'italic';
+    }
+
+    // 3. Кнопка статуса (Иконка + Текст + Стиль)
     const btn = document.getElementById('btn-status');
     if (isDone) {
-        btn.innerText = 'Вернуть';
-        btn.style.backgroundColor = 'var(--bg-page)';
+        btn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Вернуть в работу';
+        btn.style.backgroundColor = 'var(--bg-app)';
         btn.style.color = 'var(--text-main)';
+        btn.style.boxShadow = 'none';
     } else {
-        btn.innerText = 'Завершить';
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Завершить задачу';
         btn.style.backgroundColor = 'var(--accent)';
         btn.style.color = 'white';
+        btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     }
     btn.onclick = () => toggleTaskStatus(task);
 
+    // 4. Подзадачи
     renderSubtasks(task.subtasks);
+
+    // 5. Открытие
     document.getElementById('detail-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
     document.getElementById('overlay').onclick = closeModals;
     tg.BackButton.show();
 }
+
 
 // --- SUBMIT ---
 async function submitCreate() {
@@ -607,21 +633,41 @@ async function deleteTask() {
 function renderSubtasks(subtasks) {
     const list = document.getElementById('subtasks-list');
     list.innerHTML = '';
-    subtasks.forEach(sub => {
+
+    // Обновляем счетчик
+    const doneCount = subtasks.filter(s => s.is_done).length;
+    const countEl = document.getElementById('subtasks-count');
+    if(countEl) countEl.innerText = `${doneCount}/${subtasks.length}`;
+
+    if (subtasks.length === 0) {
+        list.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-hint); font-size: 14px;">Список пуст</div>`;
+        return;
+    }
+
+    subtasks.forEach((sub, index) => {
         const el = document.createElement('div');
-        el.className = 'flex items-center gap-3 py-3 border-b border-[var(--text-hint)]/10 last:border-0';
+        // Стиль строки списка (с разделителем, кроме последнего)
+        const borderStyle = index === subtasks.length - 1 ? '' : 'border-bottom: 1px solid var(--divider);';
+
+        el.style.cssText = `display: flex; align-items: center; gap: 12px; padding: 12px 16px; background-color: var(--bg-app); ${borderStyle}`;
+
         el.innerHTML = `
-            <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''}>
-            <span class="text-sm flex-1 text-main ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
+            <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''} style="margin: 0;">
+            <span style="font-size: 15px; flex: 1; color: var(--text-main); text-decoration: ${sub.is_done ? 'line-through' : 'none'}; opacity: ${sub.is_done ? '0.5' : '1'}; transition: 0.2s;">${sub.title}</span>
+            <button onclick="deleteSubtask(${sub.id})" style="color: #ef4444; opacity: 0.5; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
         `;
+
+        // Чекбокс
         el.querySelector('input').onchange = (e) => {
             api.toggleSubtask(sub.id, e.target.checked);
             sub.is_done = e.target.checked;
-            renderSubtasks(subtasks);
+            renderSubtasks(subtasks); // Перерисовка для обновления стилей и счетчика
         };
+
         list.appendChild(el);
     });
 }
+
 
 // --- UTILS ---
 function setFilter(type) {

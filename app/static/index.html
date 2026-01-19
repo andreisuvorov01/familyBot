@@ -155,32 +155,59 @@
     </div>
 
     <!-- === Detail Modal === -->
+        <!-- Detail Modal -->
     <div id="detail-modal" class="bottom-sheet">
         <div class="sheet-handle"></div>
+
+        <!-- Верхняя панель (Заголовок + Действия) -->
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
-            <h2 id="detail-title" class="text-2xl font-bold leading-tight mr-2 flex-1 break-words text-main"></h2>
-            <div style="display: flex; gap: 16px;">
-                <button onclick="openEditMode()" class="text-accent text-lg"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteTask()" class="text-red-500 text-lg"><i class="fa-solid fa-trash"></i></button>
+            <h2 id="detail-title" style="font-size: 28px; font-weight: 800; margin: 0; flex: 1; line-height: 1.2; word-break: break-word; color: var(--text-main);">Заголовок</h2>
+
+            <!-- Кнопки действий (Круглые, аккуратные) -->
+            <div style="display: flex; gap: 12px; margin-left: 16px;">
+                <button onclick="openEditMode()" style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bg-app); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="deleteTask()" style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
             </div>
         </div>
 
-        <div style="background-color: var(--bg-page); padding: 16px; border-radius: 16px; margin-bottom: 24px;">
-            <p id="detail-desc" style="font-size: 16px; white-space: pre-wrap; margin: 0; opacity: 0.9; line-height: 1.5; color: var(--text-main);"></p>
+        <!-- Блок Описания (Карточка) -->
+        <div style="background-color: var(--bg-app); padding: 16px; border-radius: 16px; margin-bottom: 24px;">
+            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Описание</label>
+            <p id="detail-desc" style="font-size: 16px; white-space: pre-wrap; margin: 0; line-height: 1.5; color: var(--text-main);">Нет описания</p>
         </div>
 
+        <!-- Блок Чек-листа (Карточка) -->
         <div style="margin-bottom: 24px;">
-            <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Чек-лист</h3>
-            <div id="subtasks-list"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
+                <h3 style="font-size: 13px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">Подзадачи</h3>
+                <span id="subtasks-count" style="font-size: 12px; color: var(--text-hint); font-weight: 500;">0/0</span>
+            </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 12px;">
-                <input type="text" id="new-subtask" placeholder="Добавить шаг..." style="margin-bottom: 0;">
-                <button onclick="addSubtask()" style="background-color: var(--accent); color: white; width: 48px; border-radius: 12px; display: grid; place-content: center;"><i class="fa-solid fa-arrow-up"></i></button>
+            <div style="background-color: var(--bg-app); border-radius: 16px; overflow: hidden;">
+                <div id="subtasks-list">
+                    <!-- JS заполнит список -->
+                </div>
+
+                <!-- Поле добавления -->
+                <div style="display: flex; align-items: center; padding: 4px 8px 4px 16px; border-top: 1px solid var(--divider);">
+                    <input type="text" id="new-subtask" placeholder="Добавить пункт..." style="background: transparent; padding: 12px 0; margin: 0; font-size: 15px;">
+                    <button onclick="addSubtask()" style="width: 32px; height: 32px; background-color: var(--accent); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-plus" style="font-size: 14px;"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <button id="btn-status" style="width: 100%; padding: 16px; background-color: var(--accent); color: white; border-radius: 16px; font-weight: 700; font-size: 17px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Завершить</button>
+        <!-- Кнопка статуса (Большая) -->
+        <button id="btn-status" style="width: 100%; padding: 16px; background-color: var(--accent); color: white; border-radius: 16px; font-weight: 700; font-size: 17px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-check"></i> Завершить
+        </button>
     </div>
+
 
     <script src="/static/js/api.js"></script>
     <script src="/static/js/app.js"></script>
