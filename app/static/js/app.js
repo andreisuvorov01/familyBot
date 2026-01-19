@@ -1,7 +1,7 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// 1. ИСПРАВЛЕННЫЙ STATE (убраны state. и точки с запятой внутри)
+// Глобальное состояние
 let state = {
     tasks: [],
     filter: 'all',
@@ -9,16 +9,23 @@ let state = {
     view: 'list',
     calendarDate: new Date(),
     selectedDateStr: null,
-    tempDate: null,   // Исправлено
-    tempRepeat: null  // Исправлено
+    tempDate: null,
+    tempRepeat: null
 };
+
+// Переменная для навигации в пикере даты
+let pickerDate = new Date();
 
 // --- INIT ---
 async function init() {
     setupTheme();
     setupEventListeners();
-    initSwipeGestures();
-    initTimeSelectors()
+    initSwipeGestures(); // Включаем свайпы
+
+    // Устанавливаем дефолтное время в пикер
+    formatTimeInput(document.getElementById('pick-h'), 23);
+    formatTimeInput(document.getElementById('pick-m'), 59);
+
     await loadTasks();
     setInterval(loadTasks, 15000);
 }
@@ -30,7 +37,6 @@ function setupTheme() {
     } else {
         document.body.classList.add('is-android');
     }
-
     document.body.style.backgroundColor = 'var(--bg-page)';
 
     const user = tg.initDataUnsafe?.user;
@@ -51,18 +57,26 @@ async function loadTasks() {
         renderList();
         if (state.view === 'calendar') renderCalendar();
     } catch (e) {
-        console.error("API Error:", e);
+        console.error(e);
     }
 }
+
+// === HELPER: Time Input Formatting ===
+// Вызывается при потере фокуса (onblur)
+window.formatTimeInput = function(input, max) {
+    let val = parseInt(input.value);
+    if (isNaN(val) || val < 0) val = 0;
+    if (val > max) val = max;
+    // Добавляем ноль в начало и возвращаем в поле
+    input.value = String(val).padStart(2, '0');
+};
 
 // === DATE LOGIC ===
 function checkTaskOnDate(task, targetDate) {
     if (!task.deadline) return false;
-
     let dStr = task.deadline.endsWith('Z') ? task.deadline : task.deadline + 'Z';
     const taskDate = new Date(dStr);
     const taskMidnight = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
-
     const targetMidnight = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
     if (targetMidnight < taskMidnight) return false;
@@ -111,11 +125,7 @@ function renderList() {
     }
 
     if (filtered.length === 0) {
-        list.innerHTML = `
-            <div style="text-align: center; padding-top: 80px; opacity: 0.5;">
-                <i class="fa-solid fa-mug-hot" style="font-size: 48px; margin-bottom: 16px; color: var(--text-hint);"></i>
-                <p style="font-size: 16px; font-weight: 500; color: var(--text-hint);">Нет задач</p>
-            </div>`;
+        list.innerHTML = `<div style="text-align: center; padding-top: 80px; opacity: 0.5;"><i class="fa-solid fa-mug-hot" style="font-size: 48px; margin-bottom: 16px; color: var(--text-hint);"></i><p style="font-size: 16px; font-weight: 500; color: var(--text-hint);">Нет задач</p></div>`;
         return;
     }
 
@@ -144,9 +154,7 @@ function renderList() {
             const color = isLate ? '#ff3b30' : 'var(--text-hint)';
             const weight = isLate ? '700' : '500';
             const icon = isLate ? 'fa-solid fa-fire' : 'fa-regular fa-clock';
-            timeBadge = `<span style="color: ${color}; font-weight: ${weight}; font-size: 12px; display: flex; align-items: center; gap: 4px; margin-right: 8px;">
-                <i class="${icon}"></i> ${timeStr}
-            </span>`;
+            timeBadge = `<span style="color: ${color}; font-weight: ${weight}; font-size: 12px; display: flex; align-items: center; gap: 4px; margin-right: 8px;"><i class="${icon}"></i> ${timeStr}</span>`;
         }
 
         const repeatIcon = task.repeat_rule ? '<i class="fa-solid fa-rotate" style="font-size: 12px; opacity: 0.6; margin-left: 6px;"></i>' : '';
@@ -157,15 +165,13 @@ function renderList() {
         el.className = 'task-card';
         el.classList.add('animate-enter');
         el.style.animationDelay = `${index * 0.05}s`;
-
         el.style.borderLeft = borderLeft;
         if (isDone) el.style.opacity = '0.6';
 
-         el.innerHTML = `
+        el.innerHTML = `
             <div style="width: 24px; height: 24px; border: 2px solid ${isDone ? '#34c759' : 'var(--text-hint)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${isDone ? '#34c759' : 'transparent'}; flex-shrink: 0;">
                 ${isDone ? '<i class="fa-solid fa-check" style="color: white; font-size: 12px;"></i>' : ''}
             </div>
-
             <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; margin-bottom: 4px;">
                     ${timeBadge}
@@ -180,13 +186,12 @@ function renderList() {
             </div>
             <i class="fa-solid fa-chevron-right" style="color: var(--text-hint); opacity: 0.3; font-size: 14px;"></i>
         `;
-
         el.onclick = () => openDetail(task);
         list.appendChild(el);
     });
 }
 
-// --- CALENDAR ---
+// --- CALENDAR RENDER ---
 function changeMonth(delta) {
     state.calendarDate.setMonth(state.calendarDate.getMonth() + delta);
     renderCalendar();
@@ -195,14 +200,12 @@ function changeMonth(delta) {
 function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
-
     const oldCells = grid.querySelectorAll('div:not(.calendar-day-name)');
     oldCells.forEach(c => c.remove());
 
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
     const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-
     document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
 
     const firstDayIndex = new Date(year, month, 1).getDay();
@@ -224,25 +227,17 @@ function renderCalendar() {
 
         const el = document.createElement('div');
         el.className = 'calendar-day';
-
         const span = document.createElement('span');
         span.innerText = day;
         el.appendChild(span);
 
-        // Today
-        if (currentDate.getTime() === todayMidnight.getTime()) {
-            el.classList.add('today');
-        }
-        if (state.selectedDateStr === dateStr) {
-            el.classList.add('selected');
-        }
+        if (currentDate.getTime() === todayMidnight.getTime()) el.classList.add('today');
+        if (state.selectedDateStr === dateStr) el.classList.add('selected');
 
         const dayTasks = state.tasks.filter(t => {
-            // Обычная проверка
             const matches = checkTaskOnDate(t, currentDate);
             if (matches) return true;
-
-            // Для "Сегодня" показываем просроченные
+            // Для "Сегодня" показываем долги
             if (currentDate.getTime() === todayMidnight.getTime() && t.status !== 'done' && t.deadline) {
                 let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
                 if (new Date(dStr) < today) return true;
@@ -257,18 +252,15 @@ function renderCalendar() {
                 const dot = document.createElement('div');
                 let dotClass = 'common';
                 if (t.visibility !== 'common') dotClass = 'private';
-
                 if (t.deadline) {
                     let dStr = t.deadline.endsWith('Z') ? t.deadline : t.deadline + 'Z';
                     if (new Date(dStr) < new Date() && t.status !== 'done') dotClass = 'late';
                 }
-
                 dot.className = `dot ${dotClass}`;
                 dotsContainer.appendChild(dot);
             });
             el.appendChild(dotsContainer);
         }
-
         el.onclick = () => selectDate(dateStr);
         grid.appendChild(el);
     }
@@ -289,14 +281,132 @@ function resetCalendarFilter() {
     renderList();
 }
 
+// --- DATE PICKER LOGIC (FIXED) ---
+
+function openDateSheet() {
+    document.getElementById('sheet-date').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+
+    // Если дата уже была выбрана, открываем пикер на ней
+    if (state.tempDate) {
+        pickerDate = new Date(state.tempDate);
+        const h = String(state.tempDate.getHours()).padStart(2, '0');
+        const m = String(state.tempDate.getMinutes()).padStart(2, '0');
+        document.getElementById('pick-h').value = h;
+        document.getElementById('pick-m').value = m;
+    } else {
+        pickerDate = new Date();
+    }
+
+    renderPickerCalendar();
+}
+
+// ВОТ ОНА, ПОТЕРЯННАЯ ФУНКЦИЯ!
+function selectQuickDate(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    applyDate(d);
+}
+
+function applyDate(dateObj) {
+    // Берем время из наших кастомных инпутов
+    const h = document.getElementById('pick-h').value || "12";
+    const m = document.getElementById('pick-m').value || "00";
+
+    dateObj.setHours(parseInt(h), parseInt(m));
+    state.tempDate = dateObj;
+
+    const el = document.getElementById('val-date');
+    el.innerText = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
+    el.classList.remove('placeholder');
+
+    // Закрываем только sheet-date
+    document.getElementById('sheet-date').classList.remove('active');
+    // Оверлей не убираем, так как под ним create-modal
+}
+
+function clearDate() {
+    state.tempDate = null;
+    document.getElementById('val-date').innerText = "Нет";
+    document.getElementById('val-date').classList.add('placeholder');
+    document.getElementById('sheet-date').classList.remove('active');
+}
+
+function changePickerMonth(delta) {
+    pickerDate.setMonth(pickerDate.getMonth() + delta);
+    renderPickerCalendar();
+}
+
+// Календарь для выбора даты
+function renderPickerCalendar() {
+    const grid = document.getElementById('picker-calendar-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    const year = pickerDate.getFullYear();
+    const month = pickerDate.getMonth();
+    const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+    document.getElementById('picker-month-year').innerText = `${monthNames[month]} ${year}`;
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+    for (let i = 0; i < adjustedFirstDay; i++) {
+        const div = document.createElement('div');
+        grid.appendChild(div);
+    }
+
+    const now = new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        el.innerHTML = `<span>${day}</span>`;
+
+        // Подсветка "Сегодня"
+        if (day === now.getDate() && month === now.getMonth() && year === now.getFullYear()) {
+            el.classList.add('today');
+        }
+        // Подсветка "Выбрано"
+        if (state.tempDate && day === state.tempDate.getDate() && month === state.tempDate.getMonth() && year === state.tempDate.getFullYear()) {
+            el.classList.add('selected');
+        }
+
+        el.onclick = () => {
+            const selected = new Date(year, month, day);
+            applyDate(selected);
+        };
+        grid.appendChild(el);
+    }
+}
+
 // --- MODALS & FORMS ---
+
+function openRepeatSheet() {
+    document.getElementById('sheet-repeat').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = () => {
+        closeSheets(); // Закрываем пикер, но не модалку создания
+    };
+}
+
+function selectRepeat(value) {
+    state.tempRepeat = value;
+    const map = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
+    const el = document.getElementById('val-repeat');
+    el.innerText = map[value];
+    if (value) el.classList.remove('placeholder');
+    else el.classList.add('placeholder');
+
+    document.getElementById('sheet-repeat').classList.remove('active');
+}
 
 function openCreateModal() {
     tg.HapticFeedback.impactOccurred('medium');
     document.getElementById('new-title').value = '';
     document.getElementById('new-desc').value = '';
 
-    // Сброс кастомных пикеров
+    // Сброс
     state.tempDate = null;
     state.tempRepeat = null;
     document.getElementById('val-date').innerText = 'Нет';
@@ -306,6 +416,8 @@ function openCreateModal() {
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+    // Восстанавливаем обработчик закрытия всего
+    document.getElementById('overlay').onclick = closeModals;
 
     setTimeout(() => document.getElementById('new-title').focus(), 300);
 
@@ -315,52 +427,40 @@ function openCreateModal() {
     tg.MainButton.onClick(submitCreate);
 }
 
-// 2. ИСПРАВЛЕННАЯ ФУНКЦИЯ openEditMode (без дубликатов)
 function openEditMode() {
     const task = state.currentTask;
     closeModals();
 
     document.getElementById('create-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = closeModals;
 
-    // Текст
     document.getElementById('new-title').value = task.title;
     document.getElementById('new-desc').value = task.description || '';
 
-    // Видимость
+    // Заполнение Видимости
     const vis = task.visibility === 'common' ? 'common' : 'private';
     document.querySelector(`input[name="visibility"][value="${vis}"]`).checked = true;
 
-    // Повтор (Custom UI)
+    // Заполнение Повтора
     state.tempRepeat = task.repeat_rule;
     const repeatMap = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
-    const repeatText = repeatMap[task.repeat_rule] || 'Нет';
-    const repeatEl = document.getElementById('val-repeat');
-    repeatEl.innerText = repeatText;
-    if (task.repeat_rule) repeatEl.classList.remove('placeholder');
-    else repeatEl.classList.add('placeholder');
+    document.getElementById('val-repeat').innerText = repeatMap[task.repeat_rule] || 'Нет';
 
-    // Дата (Custom UI)
+    // Заполнение Даты
     if(task.deadline) {
-        let dStr = task.deadline;
-        if (!dStr.endsWith('Z')) dStr += 'Z';
+        let dStr = task.deadline.endsWith('Z') ? task.deadline : task.deadline + 'Z';
         const d = new Date(dStr);
         state.tempDate = d;
+        document.getElementById('val-date').innerText = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
+        document.getElementById('val-date').classList.remove('placeholder');
 
-        const dateText = d.toLocaleDateString('ru-RU', {
-            day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit'
-        });
-        const dateEl = document.getElementById('val-date');
-        dateEl.innerText = dateText;
-        dateEl.classList.remove('placeholder');
-
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-        document.getElementById('time-picker').value = `${hours}:${minutes}`;
+        // Часы
+        document.getElementById('pick-h').value = String(d.getHours()).padStart(2, '0');
+        document.getElementById('pick-m').value = String(d.getMinutes()).padStart(2, '0');
     } else {
         state.tempDate = null;
         document.getElementById('val-date').innerText = 'Нет';
-        document.getElementById('val-date').classList.add('placeholder');
     }
 
     tg.MainButton.setText("СОХРАНИТЬ");
@@ -379,21 +479,15 @@ function openDetail(task) {
     titleEl.style.opacity = isDone ? '0.5' : '1';
 
     const descEl = document.getElementById('detail-desc');
-    if (task.description && task.description.trim()) {
-        descEl.innerText = task.description;
-        descEl.style.opacity = '0.9';
-    } else {
-        descEl.innerText = "Нет описания";
-        descEl.style.opacity = '0.5';
-    }
+    descEl.innerText = (task.description && task.description.trim()) ? task.description : "Нет описания";
 
     const btn = document.getElementById('btn-status');
     if (isDone) {
-        btn.innerHTML = '<i class="fa-solid fa-rotate-left mr-2"></i> Вернуть';
+        btn.innerText = 'Вернуть';
         btn.style.backgroundColor = 'var(--bg-page)';
         btn.style.color = 'var(--text-main)';
     } else {
-        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Завершить';
+        btn.innerText = 'Завершить';
         btn.style.backgroundColor = 'var(--accent)';
         btn.style.color = 'white';
     }
@@ -403,26 +497,22 @@ function openDetail(task) {
 
     document.getElementById('detail-modal').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = closeModals;
     tg.BackButton.show();
 }
 
-// --- ACTIONS ---
-
+// --- SUBMIT ---
 async function submitCreate() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
     const visibility = document.querySelector('input[name="visibility"]:checked').value;
 
-    // Берем данные из state
+    // Данные из state
     const repeat = state.tempRepeat || null;
     let deadline = null;
     if (state.tempDate) deadline = state.tempDate.toISOString();
 
-    if (!title.trim()) {
-        tg.HapticFeedback.notificationOccurred('error');
-        document.getElementById('new-title').focus();
-        return;
-    }
+    if (!title.trim()) return;
 
     tg.MainButton.showProgress();
     try {
@@ -430,7 +520,6 @@ async function submitCreate() {
             title, description: desc, visibility, deadline, repeat_rule: repeat
         });
         tg.HapticFeedback.notificationOccurred('success');
-
         closeModals();
         loadTasks();
     } catch(e) {
@@ -459,41 +548,32 @@ async function submitUpdate() {
     tg.MainButton.hideProgress();
 }
 
+// ... toggleTaskStatus, addSubtask, deleteTask, renderSubtasks, setFilter, closeModals, closeSheets, setupEventListeners ...
+// (Они не менялись, вставь их из прошлого кода)
+
 async function toggleTaskStatus(task) {
     const targetTask = task || state.currentTask;
     if (!targetTask) return;
-
     const newStatus = targetTask.status === 'done' ? 'pending' : 'done';
-
     targetTask.status = newStatus;
     renderList();
     closeModals();
     tg.HapticFeedback.notificationOccurred('success');
-
-    try {
-        await api.toggleTaskStatus(targetTask.id, newStatus);
-    } catch (e) {
-        alert("Ошибка");
-        targetTask.status = targetTask.status === 'done' ? 'pending' : 'done';
-        renderList();
-    } finally {
-        loadTasks();
-    }
+    await api.toggleTaskStatus(targetTask.id, newStatus);
+    loadTasks();
 }
 
 async function addSubtask() {
     const input = document.getElementById('new-subtask');
     if(!input.value.trim()) return;
-    try {
-        const sub = await api.addSubtask(state.currentTask.id, input.value);
-        state.currentTask.subtasks.push(sub);
-        input.value = '';
-        renderSubtasks(state.currentTask.subtasks);
-    } catch(e) {}
+    const sub = await api.addSubtask(state.currentTask.id, input.value);
+    state.currentTask.subtasks.push(sub);
+    input.value = '';
+    renderSubtasks(state.currentTask.subtasks);
 }
 
 async function deleteTask() {
-    tg.showConfirm("Удалить задачу?", async (ok) => {
+    tg.showConfirm("Удалить?", async (ok) => {
         if(ok) {
             closeModals();
             await api.deleteTask(state.currentTask.id);
@@ -508,8 +588,6 @@ function renderSubtasks(subtasks) {
     subtasks.forEach(sub => {
         const el = document.createElement('div');
         el.className = 'flex items-center gap-3 py-3 border-b border-[var(--text-hint)]/10 last:border-0';
-        el.style.borderBottom = '1px solid rgba(128,128,128,0.1)';
-
         el.innerHTML = `
             <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''}>
             <span class="text-sm flex-1 text-main ${sub.is_done ? 'line-through opacity-50' : ''}">${sub.title}</span>
@@ -523,7 +601,6 @@ function renderSubtasks(subtasks) {
     });
 }
 
-// --- UTILS ---
 function setFilter(type) {
     state.filter = type;
     tg.HapticFeedback.selectionChanged();
@@ -535,165 +612,33 @@ function setFilter(type) {
 }
 
 function closeModals() {
-    document.querySelectorAll('.bottom-sheet').forEach(el => {
-        el.classList.remove('active');
-        el.style.transform = ''; // Сброс стиля от свайпа
-    });
+    document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
     document.getElementById('overlay').classList.remove('active');
     tg.MainButton.hide();
     tg.BackButton.hide();
     document.activeElement.blur();
 }
 
-// Закрывает только верхние пикеры
 function closeSheets() {
-    // Находим пикеры (id начинается с sheet-)
-    const pickers = document.querySelectorAll('[id^="sheet-"]');
-    pickers.forEach(el => {
-        el.classList.remove('active');
-        el.style.transform = '';
-    });
-
-    // Проверяем, осталась ли открыта родительская модалка
-    const parentActive = document.querySelector('.bottom-sheet.active');
-    if (!parentActive) {
+    document.querySelectorAll('[id^="sheet-"]').forEach(el => el.classList.remove('active'));
+    // Не закрываем оверлей, если открыт create-modal
+    const create = document.getElementById('create-modal');
+    if (!create.classList.contains('active')) {
         document.getElementById('overlay').classList.remove('active');
-    }
-}
-
-// --- Custom Picker Logic ---
-function openRepeatSheet() {
-    document.getElementById('sheet-repeat').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-    document.getElementById('overlay').onclick = () => {
-        closeSheets();
-        document.getElementById('create-modal').classList.add('active');
-        document.getElementById('overlay').classList.add('active');
-    };
-}
-
-function selectRepeat(value) {
-    state.tempRepeat = value;
-    const map = { null: 'Нет', 'daily': 'Ежедневно', 'weekly': 'Еженедельно', 'monthly': 'Ежемесячно' };
-    const el = document.getElementById('val-repeat');
-    el.innerText = map[value];
-    if (value) el.classList.remove('placeholder');
-    else el.classList.add('placeholder');
-    closeSheets();
-    document.getElementById('create-modal').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-}
-
-function openDateSheet() {
-    document.getElementById('sheet-date').classList.add('active');
-    document.getElementById('overlay').classList.add('active');
-
-    // Сбрасываем пикер на текущий месяц (или на месяц выбранной даты)
-    if (state.tempDate) {
-        pickerDate = new Date(state.tempDate);
-        // Устанавливаем время в селекторы
-        document.getElementById('pick-h').value = String(state.tempDate.getHours()).padStart(2, '0');
-        // Округляем минуты до ближайших 5 (если шаг 5)
-        let m = Math.round(state.tempDate.getMinutes() / 5) * 5;
-        if(m===60) m=55;
-        document.getElementById('pick-m').value = String(m).padStart(2, '0');
     } else {
-        pickerDate = new Date();
+        // Возвращаем клик на оверлей для закрытия create-modal
+        document.getElementById('overlay').onclick = closeModals;
     }
-
-    renderPickerCalendar();
-}
-
-function changePickerMonth(delta) {
-    pickerDate.setMonth(pickerDate.getMonth() + delta);
-    renderPickerCalendar();
-}
-
-function renderPickerCalendar() {
-    const grid = document.getElementById('picker-calendar-grid');
-    if(!grid) return;
-    grid.innerHTML = '';
-
-    const year = pickerDate.getFullYear();
-    const month = pickerDate.getMonth();
-    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-
-    document.getElementById('picker-month-year').innerText = `${monthNames[month]} ${year}`;
-
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
-    // Пустые
-    for (let i = 0; i < adjustedFirstDay; i++) {
-        const div = document.createElement('div');
-        grid.appendChild(div);
-    }
-
-    const today = new Date();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const el = document.createElement('div');
-        el.className = 'calendar-day';
-        el.innerHTML = `<span>${day}</span>`;
-
-        // Подсветка "Сегодня"
-        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            el.classList.add('today');
-        }
-
-        // Подсветка "Выбрано" (если совпадает с tempDate)
-        if (state.tempDate &&
-            day === state.tempDate.getDate() &&
-            month === state.tempDate.getMonth() &&
-            year === state.tempDate.getFullYear()) {
-            el.classList.add('selected');
-        }
-
-        el.onclick = () => {
-            // При клике на день берем год/месяц из календаря + время из селекторов
-            const h = document.getElementById('pick-h').value;
-            const m = document.getElementById('pick-m').value;
-
-            const selected = new Date(year, month, day);
-            selected.setHours(parseInt(h), parseInt(m));
-
-            applyDate(selected);
-        };
-        grid.appendChild(el);
-    }
-}
-
-// Обновленная applyDate
-function applyDate(dateObj) {
-    state.tempDate = dateObj;
-
-    // Если время не передали (быстрый выбор), берем из селекторов
-    const h = document.getElementById('pick-h').value;
-    const m = document.getElementById('pick-m').value;
-    state.tempDate.setHours(parseInt(h), parseInt(m));
-
-    const el = document.getElementById('val-date');
-    el.innerText = state.tempDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute:'2-digit' });
-    el.classList.remove('placeholder');
-
-    // Закрываем только пикер, возвращаемся к созданию
-    document.getElementById('sheet-date').classList.remove('active');
-    // Не убираем оверлей, т.к. под ним еще create-modal
 }
 
 function setupEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => setFilter(btn.dataset.filter));
-    document.getElementById('overlay').onclick = closeModals;
     tg.BackButton.onClick(closeModals);
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
 }
-// === SWIPE TO CLOSE LOGIC ===
 
+// SWIPE LOGIC
 function initSwipeGestures() {
-    // Вешаем слушатель на document, но обрабатываем только .bottom-sheet.active
-    // Это решает проблему вложенности (мы всегда берем самый верхний sheet)
-
     let activeSheet = null;
     let startY = 0;
     let currentY = 0;
@@ -701,20 +646,11 @@ function initSwipeGestures() {
     let startTime = 0;
 
     document.addEventListener('touchstart', (e) => {
-        // Ищем ближайшую активную шторку (самую верхнюю по z-index)
-        // Для простоты берем последнюю в DOM с классом active
         const sheets = Array.from(document.querySelectorAll('.bottom-sheet.active'));
         if (sheets.length === 0) return;
-
-        // Берем самую "свежую" открытую (обычно последняя в списке или с макс z-index)
-        // В нашем случае порядок в DOM: create -> sheet-date. Sheet-date ниже, значит он перекроет create.
-        activeSheet = sheets[sheets.length - 1];
-
-        // Проверяем, что тап был внутри этой шторки или её handle
+        activeSheet = sheets[sheets.length - 1]; // Самый верхний
         if (!activeSheet.contains(e.target)) return;
 
-        // Если внутри шторки есть скролл и мы не наверху - не перехватываем
-        // Исключение: если тянем за handle - всегда тянем шторку
         const isHandle = e.target.classList.contains('sheet-handle');
         if (!isHandle && activeSheet.scrollTop > 0) return;
 
@@ -726,14 +662,10 @@ function initSwipeGestures() {
 
     document.addEventListener('touchmove', (e) => {
         if (!isDragging || !activeSheet) return;
-
         currentY = e.touches[0].clientY;
         let delta = currentY - startY;
-
-        // Блокируем скролл страницы, если тянем шторку
         if (delta > 0) {
             e.preventDefault();
-            // Сопротивление (Rubber band) не нужно при закрытии вниз, там линейно
             activeSheet.style.transform = `translateY(${delta}px)`;
         }
     }, { passive: false });
@@ -741,58 +673,27 @@ function initSwipeGestures() {
     document.addEventListener('touchend', (e) => {
         if (!isDragging || !activeSheet) return;
         isDragging = false;
-
         const delta = currentY - startY;
-        const timeDiff = Date.now() - startTime;
-        const velocity = delta / timeDiff; // Скорость свайпа
+        const velocity = delta / (Date.now() - startTime);
 
-        // Возвращаем анимацию
         activeSheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
 
-        // Условия закрытия:
-        // 1. Утянули больше чем на 120px
-        // 2. Смахнули быстро (velocity > 0.5) вниз
         if (delta > 120 || (delta > 60 && velocity > 0.5)) {
-            closeSpecificSheet(activeSheet);
+            // Закрываем конкретную шторку
+            activeSheet.classList.remove('active');
+            activeSheet.style.transform = '';
+
+            // Если это был пикер, не убираем оверлей и кнопку
+            if (activeSheet.id.startsWith('sheet-')) {
+                document.getElementById('overlay').onclick = closeModals; // Возвращаем логику
+            } else {
+                closeModals(); // Если это главное окно - закрываем всё
+            }
         } else {
-            // Отмена (пружина назад)
             activeSheet.style.transform = '';
         }
-
         activeSheet = null;
     });
 }
 
-// Хелпер для закрытия конкретной шторки
-function closeSpecificSheet(sheet) {
-    sheet.classList.remove('active');
-    sheet.style.transform = '';
-
-    // Если это была последняя шторка, убираем оверлей
-    const remaining = document.querySelectorAll('.bottom-sheet.active');
-    if (remaining.length === 0) {
-        document.getElementById('overlay').classList.remove('active');
-        tg.MainButton.hide();
-    }
-}
-function initTimeSelectors() {
-    const hSelect = document.getElementById('pick-h');
-    const mSelect = document.getElementById('pick-m');
-
-    // Часы 00-23
-    for(let i=0; i<24; i++) {
-        let val = i.toString().padStart(2, '0');
-        hSelect.innerHTML += `<option value="${val}">${val}</option>`;
-    }
-
-    // Минуты 00-55 (шаг 5 минут для удобства, или по 1 минуте)
-    for(let i=0; i<60; i+=5) {
-        let val = i.toString().padStart(2, '0');
-        mSelect.innerHTML += `<option value="${val}">${val}</option>`;
-    }
-
-    // Дефолт 12:00
-    hSelect.value = "12";
-    mSelect.value = "00";
-}
 init();

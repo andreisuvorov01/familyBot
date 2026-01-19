@@ -123,17 +123,14 @@
         </div>
 
         <!-- Выбор времени (Часы : Минуты) -->
-        <div class="time-selector-container">
-            <span class="time-label">Время выполнения</span>
-            <div class="time-inputs">
-                <!-- Генерируется JS-ом или статично -->
-                <select id="pick-h" class="time-select">
-                    <!-- 00..23 -->
-                </select>
-                <span class="time-separator">:</span>
-                <select id="pick-m" class="time-select">
-                    <!-- 00..55 -->
-                </select>
+       <div class="bg-[var(--bg-card)] rounded-xl p-4 mb-4 shadow-sm flex items-center justify-between">
+            <span class="font-medium text-main">Время</span>
+            <div class="flex items-center gap-1 bg-[var(--bg-page)] rounded-lg p-1">
+                <!-- Часы -->
+                <input type="tel" id="pick-h" class="time-input" placeholder="12" maxlength="2" onblur="formatTimeInput(this, 23)">
+                <span class="font-bold text-lg text-main">:</span>
+                <!-- Минуты -->
+                <input type="tel" id="pick-m" class="time-input" placeholder="00" maxlength="2" onblur="formatTimeInput(this, 59)">
             </div>
         </div>
 

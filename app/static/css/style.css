@@ -546,3 +546,20 @@ input[value="private"]:checked + .vis-card {
     transition: 0.2s;
 }
 .btn-destructive:active { background-color: rgba(239, 68, 68, 0.2); }
+/* Custom Time Input */
+.time-input {
+    width: 50px !important; /* Фикс ширины */
+    height: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: center;
+    font-size: 22px !important;
+    font-weight: 700;
+    color: var(--accent);
+    background: transparent !important;
+    border: none !important;
+    border-radius: 8px;
+}
+.time-input:focus {
+    background-color: rgba(128, 128, 128, 0.1) !important;
+}
