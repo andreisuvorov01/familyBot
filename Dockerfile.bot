@@ -1,0 +1,50 @@
+# Dockerfile для Telegram бота
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создание пользователя для безопасности
+RUN groupadd -r familybot && useradd -r -g familybot familybot
+
+# Копирование requirements
+COPY requirements.txt .
+
+# Установка Python зависимостей
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Копирование исходного кода
+COPY . .
+
+# Создание директорий для логов
+RUN mkdir -p logs && \
+    chown -R familybot:familybot /app
+
+# Настройка прав
+RUN chmod +x scripts/*.sh && \
+    chmod +x migrate.py
+
+# Переключение на непривилегированного пользователя
+USER familybot
+
+# Настройка переменных окружения
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    DATABASE_URL=sqlite+aiosqlite:///./data/family_base.db \
+    WEBAPP_URL=https://my-family-tasks.duckdns.org
+
+# Health check для бота
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Команда запуска бота
+CMD ["python", "bot_polling.py"]

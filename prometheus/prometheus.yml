@@ -1,0 +1,86 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'familybot'
+
+# Правила оповещений
+rule_files:
+  # - "alert.rules"
+
+# Конфигурация scrape
+scrape_configs:
+  # Prometheus сам себя
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # FastAPI приложение
+  - job_name: 'familybot-api'
+    static_configs:
+      - targets: ['api:8000']
+        labels:
+          service: 'familybot-api'
+          environment: 'production'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Nginx метрики
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+        labels:
+          service: 'nginx'
+          environment: 'production'
+    metrics_path: '/nginx_status'
+    scrape_interval: 30s
+
+  # Node экспортер (метрики системы)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node'
+          environment: 'production'
+    scrape_interval: 30s
+
+  # Redis метрики
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:9121']
+        labels:
+          service: 'redis'
+          environment: 'production'
+    scrape_interval: 30s
+
+  # PostgreSQL метрики
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+          environment: 'production'
+    scrape_interval: 30s
+
+# Настройки оповещений
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Удаленное чтение/запись
+remote_write:
+  # - url: https://prometheus-us-central1.grafana.net/api/prom/push
+  #   basic_auth:
+  #     username: your-username
+  #     password: your-password
+
+remote_read:
+  # - url: https://prometheus-us-central1.grafana.net/api/prom/push
+  #   basic_auth:
+  #     username: your-username
+  #     password: your-password
