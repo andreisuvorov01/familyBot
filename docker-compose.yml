@@ -1,0 +1,188 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: familybot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: familybot
+      POSTGRES_USER: familyuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    # Порт НЕ публикуется наружу — только внутри docker-сети
+    expose:
+      - "5432"
+    networks:
+      - familybot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U familyuser -d familybot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: familybot-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret}
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+    networks:
+      - familybot-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: familybot-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://familyuser:${POSTGRES_PASSWORD:?err}@postgres:5432/familybot
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+      ENABLE_REDIS: "true"
+      BOT_TOKEN: ${BOT_TOKEN:?BOT_TOKEN must be set}
+      WEBAPP_URL: ${WEBAPP_URL:?WEBAPP_URL must be set}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 30
+      TIMEZONE: Europe/Moscow
+      DEBUG: ${DEBUG:-false}
+      ENVIRONMENT: production
+      RATE_LIMIT_REQUESTS: 100
+      RATE_LIMIT_WINDOW: 60
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./app/static:/app/app/static
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - familybot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: familybot-bot
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://familyuser:${POSTGRES_PASSWORD:?err}@postgres:5432/familybot
+      BOT_TOKEN: ${BOT_TOKEN:?BOT_TOKEN must be set}
+      WEBAPP_URL: ${WEBAPP_URL:?WEBAPP_URL must be set}
+      TIMEZONE: Europe/Moscow
+      DEBUG: ${DEBUG:-false}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - familybot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "from app.bot.instance import bot; import asyncio; asyncio.run(bot.get_me())"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    container_name: familybot-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./app/static:/usr/share/nginx/html/static:ro
+      - ./nginx/logs:/var/log/nginx
+      - nginx_webroot:/usr/share/nginx/html/.well-known
+    depends_on:
+      - api
+    networks:
+      - familybot-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: familybot-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - familybot-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: familybot-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    expose:
+      - "3000"
+    depends_on:
+      - prometheus
+    networks:
+      - familybot-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_webroot:
+    driver: local
+
+networks:
+  familybot-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

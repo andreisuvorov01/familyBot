@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.eggs
+dist
+build
+.pytest_cache
+.mypy_cache
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment и секреты
+.env
+.env.*
+!.env.example
+
+# Данные и логи (монтируются как volumes)
+data/
+logs/
+nginx/logs/
+nginx/ssl/
+
+# Dev файлы
+requirements-dev.txt
+tests/
+Makefile
+ecosystem.config.js
+scripts/setup.sh
+scripts/familybot-api.service
+scripts/familybot-bot.service
+
+# Документация
+*.md
