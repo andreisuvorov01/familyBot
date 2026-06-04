@@ -7,6 +7,7 @@ const ITEM_HEIGHT = 34; // Высота строки в барабане (дол
 // === STATE ===
 let state = {
     tasks: [],
+    searchQuery: '',
     filter: 'all',
     currentTask: null,
     view: 'list',
@@ -25,6 +26,7 @@ let renderedTaskIds = new Set(); // Храним ID отрисованных з�
 // === INIT ===
 async function init() {
     setupTheme();
+    setupSettings();
     setupEventListeners();
     initSwipeGestures();
     initTimeSelectors(); // Генерация барабанов (1 раз)
@@ -103,9 +105,14 @@ function renderList() {
     list.innerHTML = '';
 
     let filtered = state.tasks.filter(t => {
-        if (state.filter === 'all') return true;
-        if (state.filter === 'common') return t.visibility === 'common';
-        return t.visibility !== 'common';
+        // Фильтр по категориям
+        if (state.filter === 'personal' && t.visibility === 'common') return false;
+        if (state.filter === 'common' && t.visibility !== 'common') return false;
+
+        // Фильтр по поиску
+        if (state.searchQuery && !t.title.toLowerCase().includes(state.searchQuery.toLowerCase())) return false;
+
+        return true;
     });
 
     if (state.selectedDateStr) {
@@ -701,6 +708,52 @@ function setupEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => setFilter(btn.dataset.filter));
     tg.BackButton.onClick(closeModals);
     document.getElementById('new-subtask').onkeypress = (e) => { if(e.key === 'Enter') addSubtask(); };
+
+    // Поиск
+    document.getElementById('task-search').oninput = (e) => {
+        state.searchQuery = e.target.value;
+        renderList();
+    };
+
+    // Аватар открывает настройки
+    document.getElementById('user-avatar').onclick = openSettings;
+}
+
+function openSettings() {
+    document.getElementById('settings-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = closeModals;
+}
+
+async function setupSettings() {
+    // В реальности тут нужен запрос к API за настройками пользователя
+    // Для демо используем заглушку или берем из API если оно поддерживает
+}
+
+function changeRoleFromApp() {
+    tg.showPopup({
+        title: 'Изменить роль',
+        message: 'Выберите вашу роль в семье',
+        buttons: [
+            {id: 'husband', type: 'default', text: 'Муж'},
+            {id: 'wife', type: 'default', text: 'Жена'},
+            {type: 'cancel'}
+        ]
+    }, (id) => {
+        if(id) {
+            document.getElementById('current-role').innerText = id === 'husband' ? 'Муж' : 'Жена';
+            // Вызов API для смены роли
+        }
+    });
+}
+
+function logout() {
+    tg.showConfirm("Вы уверены, что хотите выйти? Это удалит ваш аккаунт из бота.", (ok) => {
+        if(ok) {
+            tg.sendData(JSON.stringify({action: 'logout'}));
+            tg.close();
+        }
+    });
 }
 
 function initSwipeGestures() {
