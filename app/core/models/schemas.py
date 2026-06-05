@@ -67,6 +67,8 @@ class UserSettingsUpdate(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+import pytz
+
 class TaskRead(BaseModel):
     id: int
     title: str
@@ -77,6 +79,13 @@ class TaskRead(BaseModel):
     deadline: Optional[datetime] = None
     created_at: datetime
     subtasks: List[SubtaskRead] = Field(default_factory=list)
+
+    @field_validator('deadline', 'created_at', mode='before')
+    @classmethod
+    def ensure_utc(cls, v):
+        if isinstance(v, datetime) and v.tzinfo is None:
+            return pytz.UTC.localize(v)
+        return v
 
     model_config = {"from_attributes": True}
 

@@ -90,7 +90,12 @@ rate_limiter = _in_memory_limiter
 
 async def rate_limit_middleware(request: Request, call_next):
     """Middleware для rate limiting (Redis если доступен, иначе in-memory)"""
-    client_ip = request.client.host if request.client else "unknown"
+    # Пытаемся получить IP из X-Forwarded-For (для Nginx/прокси)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
 
     # Пропускаем health check и статику
     if request.url.path in ("/health", "/") or request.url.path.startswith("/static"):

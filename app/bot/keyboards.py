@@ -29,8 +29,9 @@ def get_main_inline_keyboard():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Открыть Mini App", web_app=WebAppInfo(url=settings.WEBAPP_URL))],
-            [InlineKeyboardButton(text="📊 Статистика", callback_data="stats")],
-            [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings")]
+            [InlineKeyboardButton(text="📊 Статистика", callback_data="stats"),
+             InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings")],
+            [InlineKeyboardButton(text="❓ Инструкция", callback_data="help")]
         ]
     )
     return keyboard
