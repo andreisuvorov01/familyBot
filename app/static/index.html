@@ -19,8 +19,13 @@
                     Календарь
                 </button>
             </div>
-            <div id="user-avatar" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #8b5cf6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                <span id="avatar-letter" style="font-size: 18px;">?</span>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button onclick="openHelp()" style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fa-solid fa-circle-info"></i>
+                </button>
+                <div id="user-avatar" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #8b5cf6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <span id="avatar-letter" style="font-size: 18px;">?</span>
+                </div>
             </div>
         </header>
 
@@ -247,6 +252,38 @@
         </div>
 
         <button onclick="logout()" class="btn-destructive" style="margin-top: 12px; background: rgba(239, 68, 68, 0.1);">Выйти из аккаунта</button>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <h2 class="text-xl font-bold mb-5 text-center text-main">Как пользоваться?</h2>
+
+        <div style="background: var(--bg-app); padding: 16px; border-radius: 16px; margin-bottom: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">📝 Создание задач</h3>
+            <p style="font-size: 14px; color: var(--text-main); line-height: 1.5;">Вы можете создавать задачи через сообщения в чате бота. Используйте префиксы:</p>
+            <ul style="font-size: 14px; color: var(--text-main); margin-top: 8px; padding-left: 20px;">
+                <li><b>л </b> — личная задача</li>
+                <li><b>с </b> — общая семейная задача</li>
+            </ul>
+            <p style="font-size: 14px; color: var(--text-main); margin-top: 8px;">Пример: <code>с Купить молоко завтра в 15:00</code></p>
+        </div>
+
+        <div style="background: var(--bg-app); padding: 16px; border-radius: 16px; margin-bottom: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">⚙️ Настройки</h3>
+            <p style="font-size: 14px; color: var(--text-main); line-height: 1.5;">В меню настроек можно переключить режим создания задач:</p>
+            <ul style="font-size: 14px; color: var(--text-main); margin-top: 8px; padding-left: 20px;">
+                <li><b>Команды</b> — создание только через кнопки или спец. команды.</li>
+                <li><b>Сообщения</b> — каждое ваше текстовое сообщение боту станет новой задачей.</li>
+            </ul>
+        </div>
+
+        <div style="background: var(--bg-app); padding: 16px; border-radius: 16px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">🤝 Семья</h3>
+            <p style="font-size: 14px; color: var(--text-main); line-height: 1.5;">Семейные задачи видят оба партнера. При создании или выполнении общей задачи партнер получит уведомление.</p>
+        </div>
+
+        <button onclick="closeModals()" class="btn-destructive" style="margin-top: 20px; background: var(--accent); color: white;">Понятно!</button>
     </div>
 
     <script src="/static/js/api.js"></script>

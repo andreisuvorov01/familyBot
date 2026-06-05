@@ -6,7 +6,7 @@ from .base import Base
 from sqlalchemy import Boolean
 
 
-class TaskVisibility(enum.Enum):
+class TaskVisibility(str, enum.Enum):
     HUSBAND = "husband"
     WIFE = "wife"
     COMMON = "common"

@@ -725,6 +725,12 @@ function openSettings() {
     document.getElementById('overlay').onclick = closeModals;
 }
 
+function openHelp() {
+    document.getElementById('help-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = closeModals;
+}
+
 async function setupSettings() {
     // В реальности тут нужен запрос к API за настройками пользователя
     // Для демо используем заглушку или берем из API если оно поддерживает

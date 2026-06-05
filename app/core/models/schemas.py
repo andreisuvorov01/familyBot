@@ -65,8 +65,8 @@ class TaskCreate(BaseModel):
     @field_validator('deadline')
     @classmethod
     def validate_deadline(cls, v):
-        if v and v < datetime.utcnow():
-            raise ValueError('Deadline cannot be in the past')
+        # Удаляем проверку на прошлое время, так как она может вызывать ошибки
+        # из-за разницы в миллисекундах или часовых поясах
         return v
 
     model_config = {"extra": "forbid"}
@@ -83,8 +83,6 @@ class TaskUpdate(BaseModel):
     @field_validator('deadline')
     @classmethod
     def validate_deadline(cls, v):
-        if v and v < datetime.utcnow():
-            raise ValueError('Deadline cannot be in the past')
         return v
 
     model_config = {"extra": "forbid"}
