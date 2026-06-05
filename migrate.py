@@ -1,7 +1,7 @@
 """
 Скрипт миграции базы данных.
-Создаёт/обновляет таблицы через SQLAlchemy metadata.
-Поддерживает как SQLite, так и PostgreSQL через DATABASE_URL.
+Создаёт/обновляет таблицы PostgreSQL через SQLAlchemy metadata.
+DATABASE_URL должен указывать на PostgreSQL.
 """
 import asyncio
 import os
@@ -14,7 +14,7 @@ async def run_migrations():
     # Импортируем все модели чтобы они зарегистрировались в metadata
     from app.core.models import Task, User  # noqa: F401
 
-    print(f"Running migrations for: {os.getenv('DATABASE_URL', 'sqlite').split('@')[-1]}")
+    print(f"Running PostgreSQL migrations for: {os.getenv('DATABASE_URL', '').split('@')[-1]}")
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

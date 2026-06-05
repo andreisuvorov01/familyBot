@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime, timedelta
 from pydantic import ValidationError
 from app.core.models.schemas import (
-    TaskCreate, TaskUpdate, SubtaskCreate,
+    TaskCreate, TaskUpdate, SubtaskCreate, SubtaskUpdate, UserSettingsUpdate,
     TaskVisibilityEnum, RepeatRuleEnum, TaskStatusEnum
 )
 
@@ -172,3 +172,19 @@ class TestEnums:
         assert TaskStatusEnum.PENDING.value == "pending"
         assert TaskStatusEnum.DONE.value == "done"
         assert TaskStatusEnum.CANCELLED.value == "cancelled"
+
+
+class TestSubtaskUpdateSchema:
+    def test_valid_subtask_update(self):
+        update = SubtaskUpdate(is_done=True)
+
+        assert update.is_done is True
+
+
+class TestUserSettingsUpdateSchema:
+    def test_valid_user_settings_update(self):
+        update = UserSettingsUpdate(notifications_enabled=False, task_creation_mode="message", role="wife")
+
+        assert update.notifications_enabled is False
+        assert update.task_creation_mode.value == "message"
+        assert update.role.value == "wife"

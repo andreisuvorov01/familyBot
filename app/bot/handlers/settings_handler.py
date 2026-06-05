@@ -1,4 +1,5 @@
 from aiogram import Router, types, F
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from app.bot.keyboards import get_settings_keyboard, get_role_keyboard
 from app.core.models.user import User, TaskCreationMode
@@ -73,7 +74,6 @@ async def confirm_reset(callback: types.CallbackQuery):
         [InlineKeyboardButton(text="❌ Да, удалить всё", callback_data="reset_confirmed")],
         [InlineKeyboardButton(text="🔙 Отмена", callback_data="settings")]
     ])
-    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     await callback.message.edit_text(
         "⚠️ <b>ВНИМАНИЕ!</b>\n\n"
         "Это действие полностью удалит ваш профиль и ВСЕ ваши задачи. Это нельзя будет отменить.\n\n"

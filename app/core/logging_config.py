@@ -28,7 +28,7 @@ class JSONFormatter(logging.Formatter):
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
         
-        return json.dumps(log_data, ensure_ascii=False)
+        return json.dumps(log_data, ensure_ascii=False, default=str)
 
 
 def setup_logging():
@@ -119,9 +119,10 @@ def log_with_context(
         message,
         None,
         None,
-        extra=extra_data
+        extra=None
     )
-    
+    log_record.extra = extra_data
+
     logger.handle(log_record)
 
 

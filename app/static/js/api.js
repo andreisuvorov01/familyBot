@@ -65,6 +65,24 @@ class TaskAPI {
         return this.updateTask(taskId, { status });
     }
 
+    // Profile / settings
+    async getProfile() {
+        return this.request('/api/tasks/profile');
+    }
+
+    async updateProfile(updates) {
+        return this.request('/api/tasks/profile', {
+            method: 'PATCH',
+            body: JSON.stringify(updates)
+        });
+    }
+
+    async deleteProfile() {
+        return this.request('/api/tasks/profile', {
+            method: 'DELETE'
+        });
+    }
+
     // Subtasks
     async addSubtask(taskId, title) {
         return this.request(`/api/tasks/${taskId}/subtasks`, {
@@ -77,6 +95,12 @@ class TaskAPI {
         return this.request(`/api/tasks/subtasks/${subtaskId}`, {
             method: 'PATCH',
             body: JSON.stringify({ is_done: isDone })
+        });
+    }
+
+    async deleteSubtask(subtaskId) {
+        return this.request(`/api/tasks/subtasks/${subtaskId}`, {
+            method: 'DELETE'
         });
     }
 

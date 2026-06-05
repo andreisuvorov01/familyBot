@@ -14,7 +14,8 @@ let state = {
     calendarDate: new Date(),
     selectedDateStr: null,
     tempDate: null,
-    tempRepeat: null
+    tempRepeat: null,
+    userProfile: null
 };
 
 // Глобальные переменные для пикера
@@ -26,8 +27,8 @@ let renderedTaskIds = new Set(); // Храним ID отрисованных з�
 // === INIT ===
 async function init() {
     setupTheme();
-    setupSettings();
     setupEventListeners();
+    await setupSettings();
     initSwipeGestures();
     initTimeSelectors(); // Генерация барабанов (1 раз)
 
@@ -100,6 +101,15 @@ function toggleView() {
 }
 
 // === RENDER LIST (Smart Animation) ===
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
 function renderList() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
@@ -182,7 +192,7 @@ function renderList() {
                 <div style="display: flex; align-items: center; margin-bottom: 4px;">
                     ${timeBadge}
                     <div style="font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: ${isDone ? 'line-through' : 'none'}; color: var(--text-primary);">
-                        ${task.title} ${repeatIcon}
+                        ${escapeHtml(task.title)} ${repeatIcon}
                     </div>
                 </div>
                 <div style="font-size: 13px; color: var(--text-hint); display: flex; gap: 10px;">
@@ -593,12 +603,19 @@ async function submitUpdate() {
     const repeat = state.tempRepeat || null;
     let deadline = state.tempDate ? state.tempDate.toISOString() : null;
 
+    if (!title.trim()) return;
+
     tg.MainButton.showProgress();
-    await api.updateTask(state.currentTask.id, { title, description: desc, visibility, deadline, repeat_rule: repeat });
-    tg.HapticFeedback.notificationOccurred('success');
-    closeModals();
-    loadTasks();
-    tg.MainButton.hideProgress();
+    try {
+        await api.updateTask(state.currentTask.id, { title, description: desc, visibility, deadline, repeat_rule: repeat });
+        tg.HapticFeedback.notificationOccurred('success');
+        closeModals();
+        loadTasks();
+    } catch(e) {
+        alert(e.message || e);
+    } finally {
+        tg.MainButton.hideProgress();
+    }
 }
 
 async function toggleTaskStatus(task) {
@@ -660,21 +677,45 @@ function renderSubtasks(subtasks) {
 
         el.innerHTML = `
             <input type="checkbox" class="custom-checkbox shrink-0" ${sub.is_done ? 'checked' : ''} style="margin: 0;">
-            <span style="font-size: 15px; flex: 1; color: var(--text-main); text-decoration: ${sub.is_done ? 'line-through' : 'none'}; opacity: ${sub.is_done ? '0.5' : '1'}; transition: 0.2s;">${sub.title}</span>
-            <button onclick="deleteSubtask(${sub.id})" style="color: #ef4444; opacity: 0.5; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
+            <span style="font-size: 15px; flex: 1; color: var(--text-main); text-decoration: ${sub.is_done ? 'line-through' : 'none'}; opacity: ${sub.is_done ? '0.5' : '1'}; transition: 0.2s;">${escapeHtml(sub.title)}</span>
+            <button type="button" class="delete-subtask-btn" style="color: #ef4444; opacity: 0.5; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
         `;
 
         // Чекбокс
-        el.querySelector('input').onchange = (e) => {
-            api.toggleSubtask(sub.id, e.target.checked);
+        el.querySelector('input').onchange = async (e) => {
+            const prev = sub.is_done;
             sub.is_done = e.target.checked;
-            renderSubtasks(subtasks); // Перерисовка для обновления стилей и счетчика
+            renderSubtasks(subtasks);
+            try {
+                await api.toggleSubtask(sub.id, sub.is_done);
+            } catch (err) {
+                sub.is_done = prev;
+                renderSubtasks(subtasks);
+                alert(`Ошибка подзадачи: ${err.message || err}`);
+            }
+        };
+
+        el.querySelector('.delete-subtask-btn').onclick = async (e) => {
+            e.stopPropagation();
+            await deleteSubtask(sub.id);
         };
 
         list.appendChild(el);
     });
 }
 
+
+async function deleteSubtask(subtaskId) {
+    if (!state.currentTask) return;
+    try {
+        await api.deleteSubtask(subtaskId);
+        state.currentTask.subtasks = state.currentTask.subtasks.filter(s => s.id !== subtaskId);
+        renderSubtasks(state.currentTask.subtasks);
+        loadTasks();
+    } catch (e) {
+        alert(`Не удалось удалить подзадачу: ${e.message || e}`);
+    }
+}
 
 // --- UTILS ---
 function setFilter(type) {
@@ -717,6 +758,10 @@ function setupEventListeners() {
 
     // Аватар открывает настройки
     document.getElementById('user-avatar').onclick = openSettings;
+    const notif = document.getElementById('settings-notif');
+    const mode = document.getElementById('settings-mode');
+    if (notif) notif.onchange = (e) => saveSettings({ notifications_enabled: e.target.checked });
+    if (mode) mode.onchange = (e) => saveSettings({ task_creation_mode: e.target.value });
 }
 
 function openSettings() {
@@ -726,8 +771,33 @@ function openSettings() {
 }
 
 async function setupSettings() {
-    // В реальности тут нужен запрос к API за настройками пользователя
-    // Для демо используем заглушку или берем из API если оно поддерживает
+    try {
+        const profile = await api.getProfile();
+        state.userProfile = profile;
+        const notif = document.getElementById('settings-notif');
+        const mode = document.getElementById('settings-mode');
+        const role = document.getElementById('current-role');
+
+        if (notif) notif.checked = profile.notifications_enabled;
+        if (mode) mode.value = profile.task_creation_mode;
+        if (role) role.innerText = profile.role === 'wife' ? 'Жена' : 'Муж';
+    } catch (e) {
+        console.error('Failed to load settings:', e);
+    }
+}
+
+async function saveSettings(updates) {
+    try {
+        const profile = await api.updateProfile(updates);
+        state.userProfile = profile;
+        tg.HapticFeedback.notificationOccurred('success');
+        return profile;
+    } catch (e) {
+        tg.HapticFeedback.notificationOccurred('error');
+        alert(`Не удалось сохранить настройки: ${e.message || e}`);
+        await setupSettings();
+        throw e;
+    }
 }
 
 function changeRoleFromApp() {
@@ -739,19 +809,26 @@ function changeRoleFromApp() {
             {id: 'wife', type: 'default', text: 'Жена'},
             {type: 'cancel'}
         ]
-    }, (id) => {
+    }, async (id) => {
         if(id) {
-            document.getElementById('current-role').innerText = id === 'husband' ? 'Муж' : 'Жена';
-            // Вызов API для смены роли
+            const profile = await saveSettings({ role: id });
+            document.getElementById('current-role').innerText = profile.role === 'wife' ? 'Жена' : 'Муж';
+            await loadTasks();
         }
     });
 }
 
 function logout() {
-    tg.showConfirm("Вы уверены, что хотите выйти? Это удалит ваш аккаунт из бота.", (ok) => {
+    tg.showConfirm("Вы уверены, что хотите выйти? Это удалит ваш аккаунт из бота.", async (ok) => {
         if(ok) {
-            tg.sendData(JSON.stringify({action: 'logout'}));
-            tg.close();
+            try {
+                await api.deleteProfile();
+                tg.HapticFeedback.notificationOccurred('success');
+                tg.close();
+            } catch (e) {
+                tg.HapticFeedback.notificationOccurred('error');
+                alert(`Не удалось удалить профиль: ${e.message || e}`);
+            }
         }
     });
 }

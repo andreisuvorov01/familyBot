@@ -43,7 +43,11 @@ class TaskParser:
                 deadline = deadline.replace(hour=hours, minute=minutes)
                 title = title.replace(time_match.group(0), '').strip()
 
-        # Очистка от двойных пробелов
+        # Очистка от двойных пробелов и служебных слов рядом со временем.
+        title = re.sub(r'\bв\s*$', '', title, flags=re.IGNORECASE).strip()
         title = re.sub(r'\s+', ' ', title).strip()
+
+        if not title:
+            return title, visibility, deadline, "Не удалось создать задачу: текст задачи пустой."
 
         return title, visibility, deadline, None
