@@ -38,11 +38,11 @@ class TaskAPI {
 
     // Tasks
     async getTasks() {
-        return this.request('/api/tasks');
+        return this.request('/api/tasks/');
     }
 
     async createTask(taskData) {
-        return this.request('/api/tasks', {
+        return this.request('/api/tasks/', {
             method: 'POST',
             body: JSON.stringify(taskData)
         });
