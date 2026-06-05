@@ -4,19 +4,26 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 
 from app.bot.instance import bot
-from app.bot.handlers.auth.registration import router as registration_router
-from app.bot.handlers.auth.family import router as family_router
-from app.bot.handlers.tasks.tasks_commands import router as tasks_router
+from app.bot.handlers.auth_handler import router as auth_router
+from app.bot.handlers.tasks_handler import router as tasks_router
+from app.bot.handlers.settings_handler import router as settings_router
+from app.bot.middlewares import DbSessionMiddleware, UserMiddleware
 from app.services.scheduler import send_morning_notifications, check_deadlines
 from app.core.logging_config import logger, log_with_context
 
 # Диспетчер
 dp = Dispatcher()
 
+# Мидлвари
+dp.message.middleware(DbSessionMiddleware())
+dp.callback_query.middleware(DbSessionMiddleware())
+dp.message.middleware(UserMiddleware())
+dp.callback_query.middleware(UserMiddleware())
+
 # Регистрируем роутеры
-dp.include_router(registration_router)
-dp.include_router(family_router)
+dp.include_router(auth_router)
 dp.include_router(tasks_router)
+dp.include_router(settings_router)
 
 # Настройка планировщика с Таймзоной
 scheduler = AsyncIOScheduler(timezone=timezone('Europe/Moscow'))

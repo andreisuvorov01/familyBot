@@ -9,6 +9,11 @@ class UserRole(enum.Enum):
     WIFE = "wife"
 
 
+class TaskCreationMode(enum.Enum):
+    COMMAND = "command"
+    MESSAGE = "message"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -17,3 +22,5 @@ class User(Base):
     username: Mapped[str | None] = mapped_column(String(32))
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=True)
     family_id: Mapped[str | None] = mapped_column(String(10), index=True)  # Код для связки пары
+    notifications_enabled: Mapped[bool] = mapped_column(default=True)
+    task_creation_mode: Mapped[TaskCreationMode] = mapped_column(Enum(TaskCreationMode), default=TaskCreationMode.COMMAND)

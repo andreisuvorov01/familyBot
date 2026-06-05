@@ -628,4 +628,28 @@ input[value="private"]:checked + .vis-card {
     font-size: 20px; font-weight: 700; color: var(--text-main); margin-top: -2px; z-index: 2;
 }
 
+/* Switch toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 51px;
+  height: 31px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc; transition: .4s;
+  border-radius: 34px;
+}
+.slider:before {
+  position: absolute; content: "";
+  height: 27px; width: 27px;
+  left: 2px; bottom: 2px;
+  background-color: white; transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+input:checked + .slider { background-color: var(--accent); }
+input:checked + .slider:before { transform: translateX(20px); }
 
