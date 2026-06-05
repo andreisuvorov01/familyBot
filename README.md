@@ -15,7 +15,7 @@
 
 ### Технологический стек
 - **Backend**: FastAPI (Python 3.11+)
-- **Database**: SQLite / PostgreSQL
+- **Database**: PostgreSQL
 - **Telegram Bot**: aiogram 3.x
 - **Frontend**: HTML/CSS/JS + Telegram Web App API
 - **Scheduler**: APScheduler
@@ -62,6 +62,8 @@ pip install -r requirements.txt
 ### 4. Настройка базы данных
 ```bash
 python migrate.py
+# DATABASE_URL должен указывать на PostgreSQL, например:
+# postgresql+asyncpg://familybot:password@localhost:5432/familybot
 ```
 
 ### 5. Запуск приложения
@@ -130,7 +132,7 @@ mypy app/
 5. **Обработка ошибок** - глобальные обработчики исключений
 
 ### Рекомендации для продакшена:
-1. Используйте PostgreSQL вместо SQLite
+1. Используйте отдельного PostgreSQL-пользователя с минимальными правами
 2. Настройте HTTPS и валидные SSL сертификаты
 3. Используйте переменные окружения для секретов
 4. Настройте мониторинг (Sentry, Prometheus)
@@ -150,11 +152,7 @@ curl http://localhost:8000/metrics
 
 ## 🚀 Развертывание
 
-### Docker (рекомендуется для продакшена):
-```bash
-docker build -t familybot .
-docker run -p 8000:8000 --env-file .env familybot
-```
+Проект настроен на ручное развертывание с PostgreSQL: Docker не требуется, основной сценарий запуска — через Python/systemd.
 
 ### Ручное развертывание:
 1. Настройте сервер (Ubuntu 20.04+)

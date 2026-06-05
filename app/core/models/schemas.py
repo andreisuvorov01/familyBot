@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 from enum import Enum
 from .Task import TaskVisibility
+from .user import TaskCreationMode, UserRole
 
 
 class TaskVisibilityEnum(str, Enum):
@@ -41,6 +42,31 @@ class SubtaskCreate(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class SubtaskUpdate(BaseModel):
+    is_done: bool
+
+    model_config = {"extra": "forbid"}
+
+
+class UserSettingsRead(BaseModel):
+    tg_id: int
+    username: Optional[str] = None
+    role: Optional[UserRole] = None
+    family_id: str
+    notifications_enabled: bool
+    task_creation_mode: TaskCreationMode
+
+    model_config = {"from_attributes": True}
+
+
+class UserSettingsUpdate(BaseModel):
+    notifications_enabled: Optional[bool] = None
+    task_creation_mode: Optional[TaskCreationMode] = None
+    role: Optional[UserRole] = None
+
+    model_config = {"extra": "forbid"}
+
+
 class TaskRead(BaseModel):
     id: int
     title: str
@@ -50,7 +76,7 @@ class TaskRead(BaseModel):
     visibility: TaskVisibility
     deadline: Optional[datetime] = None
     created_at: datetime
-    subtasks: List[SubtaskRead] = []
+    subtasks: List[SubtaskRead] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

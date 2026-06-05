@@ -130,11 +130,8 @@ async def reset_confirmed(callback: types.CallbackQuery, user_repo: UserReposito
 
     async with async_session_maker() as session:
         task_repo = TaskRepository(session)
-        # Удаляем задачи
-        tasks = await task_repo.get_family_tasks(db_user.family_id, db_user.role)
-        for t in tasks:
-            if t.owner_id == db_user.id:
-                await task_repo.delete_task(t.id, db_user.family_id)
+        # Удаляем все задачи пользователя, включая личные задачи прежней роли
+        await task_repo.delete_tasks_by_owner(db_user.id, db_user.family_id)
 
     await user_repo.delete_user(db_user.tg_id)
     await callback.message.edit_text("🗑 Ваш профиль и задачи полностью удалены.\nНажмите /start для новой регистрации.")

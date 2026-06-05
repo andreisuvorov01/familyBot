@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import select, delete, update, and_, or_
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.models.Task import Task, TaskVisibility, Subtask
@@ -43,6 +43,30 @@ class TaskRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_visible_task_by_id(
+        self,
+        task_id: int,
+        family_id: str,
+        user_role: UserRole
+    ) -> Optional[Task]:
+        visibilities = [TaskVisibility.COMMON]
+        if user_role == UserRole.HUSBAND:
+            visibilities.append(TaskVisibility.HUSBAND)
+        else:
+            visibilities.append(TaskVisibility.WIFE)
+
+        stmt = (
+            select(Task)
+            .where(
+                Task.id == task_id,
+                Task.family_id == family_id,
+                Task.visibility.in_(visibilities)
+            )
+            .options(selectinload(Task.subtasks))
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def create_task(
         self,
         title: str,
@@ -78,8 +102,7 @@ class TaskRepository:
             return None
 
         for key, value in updates.items():
-            if value is not None:
-                setattr(task, key, value)
+            setattr(task, key, value)
 
         await self.session.commit()
         return task
@@ -92,6 +115,15 @@ class TaskRepository:
         result = await self.session.execute(stmt)
         await self.session.commit()
         return result.rowcount > 0
+
+    async def delete_tasks_by_owner(self, owner_id: int, family_id: str) -> int:
+        stmt = delete(Task).where(
+            Task.owner_id == owner_id,
+            Task.family_id == family_id
+        )
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount or 0
 
     async def get_pending_tasks_with_deadlines(
         self,
@@ -122,8 +154,42 @@ class TaskRepository:
         await self.session.refresh(subtask)
         return subtask
 
-    async def toggle_subtask(self, subtask_id: int, is_done: bool) -> bool:
-        stmt = update(Subtask).where(Subtask.id == subtask_id).values(is_done=is_done)
+    async def get_subtask_by_id(
+        self,
+        subtask_id: int,
+        family_id: str,
+        user_role: UserRole
+    ) -> Optional[Subtask]:
+        visibilities = [TaskVisibility.COMMON]
+        if user_role == UserRole.HUSBAND:
+            visibilities.append(TaskVisibility.HUSBAND)
+        else:
+            visibilities.append(TaskVisibility.WIFE)
+
+        stmt = (
+            select(Subtask)
+            .join(Task, Task.id == Subtask.task_id)
+            .where(
+                Subtask.id == subtask_id,
+                Task.family_id == family_id,
+                Task.visibility.in_(visibilities)
+            )
+        )
         result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def toggle_subtask(self, subtask_id: int, family_id: str, user_role: UserRole, is_done: bool) -> bool:
+        subtask = await self.get_subtask_by_id(subtask_id, family_id, user_role)
+        if not subtask:
+            return False
+        subtask.is_done = is_done
         await self.session.commit()
-        return result.rowcount > 0
+        return True
+
+    async def delete_subtask(self, subtask_id: int, family_id: str, user_role: UserRole) -> bool:
+        subtask = await self.get_subtask_by_id(subtask_id, family_id, user_role)
+        if not subtask:
+            return False
+        await self.session.delete(subtask)
+        await self.session.commit()
+        return True

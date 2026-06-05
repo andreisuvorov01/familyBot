@@ -6,7 +6,10 @@ from typing import Optional
 from app.core.database import get_async_session
 from app.core.models.user import User, UserRole
 from app.core.models.Task import TaskVisibility
-from app.core.models.schemas import TaskRead, TaskCreate, TaskUpdate, SubtaskCreate, SubtaskRead
+from app.core.models.schemas import (
+    TaskRead, TaskCreate, TaskUpdate, SubtaskCreate, SubtaskRead, SubtaskUpdate,
+    UserSettingsRead, UserSettingsUpdate
+)
 from app.api.security import verify_telegram_data
 from app.core.security.rate_limiter import check_auth_rate_limit
 from app.core.logging_config import log_with_context, log_function_call
@@ -166,6 +169,53 @@ async def create_task(
     return new_task
 
 
+# --- PROFILE / MINI APP SETTINGS ---
+
+@router.get("/profile", response_model=UserSettingsRead)
+@log_function_call
+async def get_profile(user: User = Depends(get_current_user)):
+    """Получить настройки текущего пользователя для Mini App."""
+    return user
+
+
+@router.patch("/profile", response_model=UserSettingsRead)
+@log_function_call
+async def update_profile(
+    updates: UserSettingsUpdate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Обновить настройки текущего пользователя из Mini App."""
+    update_data = updates.model_dump(exclude_unset=True)
+    if not update_data:
+        return user
+
+    user_repo = UserRepository(session)
+    await user_repo.update_settings(user.tg_id, **update_data)
+
+    for key, value in update_data.items():
+        setattr(user, key, value)
+
+    log_with_context("INFO", "User profile updated", user_id=user.id, fields=list(update_data.keys()))
+    return user
+
+
+@router.delete("/profile")
+@log_function_call
+async def delete_profile(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Удалить профиль текущего пользователя и его задачи."""
+    task_repo = TaskRepository(session)
+    await task_repo.delete_tasks_by_owner(user.id, user.family_id)
+
+    user_repo = UserRepository(session)
+    await user_repo.delete_user(user.tg_id)
+    log_with_context("INFO", "User profile deleted from Mini App", user_id=user.id)
+    return {"ok": True}
+
+
 @router.patch("/{task_id}")
 @log_function_call
 async def update_task(
@@ -177,8 +227,8 @@ async def update_task(
     """Обновить задачу"""
     task_repo = TaskRepository(session)
     
-    # Получаем текущую задачу
-    task = await task_repo.get_task_by_id(task_id, user.family_id)
+    # Получаем текущую задачу с учетом видимости пользователя
+    task = await task_repo.get_visible_task_by_id(task_id, user.family_id, user.role)
     if not task:
         log_with_context(
             "WARNING",
@@ -194,17 +244,18 @@ async def update_task(
     
     # Подготавливаем обновления
     update_data = {}
-    if updates.title is not None:
+    provided_fields = updates.model_fields_set
+    if "title" in provided_fields:
         update_data["title"] = updates.title
-    if updates.description is not None:
+    if "description" in provided_fields:
         update_data["description"] = updates.description
-    if updates.deadline is not None:
+    if "deadline" in provided_fields:
         update_data["deadline"] = updates.deadline
-    if updates.repeat_rule is not None:
-        update_data["repeat_rule"] = updates.repeat_rule.value
+    if "repeat_rule" in provided_fields:
+        update_data["repeat_rule"] = updates.repeat_rule.value if updates.repeat_rule else None
     
     # Обработка visibility
-    if updates.visibility is not None:
+    if "visibility" in provided_fields and updates.visibility is not None:
         visibility_map = {
             "private": TaskVisibility.HUSBAND if user.role == UserRole.HUSBAND else TaskVisibility.WIFE,
             "common": TaskVisibility.COMMON
@@ -212,7 +263,7 @@ async def update_task(
         update_data["visibility"] = visibility_map.get(updates.visibility.value, TaskVisibility.COMMON)
     
     # Обработка статуса и повторяющихся задач
-    if updates.status is not None:
+    if "status" in provided_fields and updates.status is not None:
         if updates.status.value == "done" and task.repeat_rule:
             # Для повторяющихся задач не меняем статус, а переносим дедлайн
             update_data["status"] = "pending"
@@ -270,7 +321,7 @@ async def delete_task(
     task_repo = TaskRepository(session)
     
     # Получаем задачу для логирования
-    task = await task_repo.get_task_by_id(task_id, user.family_id)
+    task = await task_repo.get_visible_task_by_id(task_id, user.family_id, user.role)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -308,7 +359,7 @@ async def add_subtask(
     task_repo = TaskRepository(session)
     
     # Проверяем существование задачи
-    task = await task_repo.get_task_by_id(task_id, user.family_id)
+    task = await task_repo.get_visible_task_by_id(task_id, user.family_id, user.role)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -330,14 +381,14 @@ async def add_subtask(
 @log_function_call
 async def toggle_subtask(
     sub_id: int,
-    is_done: bool,
+    updates: SubtaskUpdate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session)
 ):
     """Переключить статус подзадачи"""
     task_repo = TaskRepository(session)
     
-    success = await task_repo.toggle_subtask(sub_id, is_done)
+    success = await task_repo.toggle_subtask(sub_id, user.family_id, user.role, updates.is_done)
     
     if not success:
         raise HTTPException(
@@ -347,7 +398,27 @@ async def toggle_subtask(
     
     log_with_context(
         "INFO",
-        f"Subtask {sub_id} toggled to {is_done}",
+        f"Subtask {sub_id} toggled to {updates.is_done}",
         user_id=user.id
     )
+    return {"ok": True}
+
+
+@router.delete("/subtasks/{sub_id}")
+@log_function_call
+async def delete_subtask(
+    sub_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Удалить подзадачу."""
+    task_repo = TaskRepository(session)
+    success = await task_repo.delete_subtask(sub_id, user.family_id, user.role)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subtask not found"
+        )
+
+    log_with_context("INFO", f"Subtask {sub_id} deleted", user_id=user.id)
     return {"ok": True}

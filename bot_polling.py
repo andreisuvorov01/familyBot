@@ -22,8 +22,8 @@ dp.callback_query.middleware(UserMiddleware())
 
 # Регистрируем роутеры
 dp.include_router(auth_router)
-dp.include_router(tasks_router)
 dp.include_router(settings_router)
+dp.include_router(tasks_router)
 
 # Настройка планировщика с Таймзоной
 scheduler = AsyncIOScheduler(timezone=timezone('Europe/Moscow'))
