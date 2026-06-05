@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Any, Optional
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.models.user import User, UserRole
+from app.core.models.user import User, UserRole, TaskCreationMode
 
 
 class UserRepository:
@@ -51,4 +51,10 @@ class UserRepository:
     async def get_users_by_family(self, family_id: str) -> list[User]:
         stmt = select(User).where(User.family_id == family_id)
         result = await self.session.execute(stmt)
-        return result.scalars().all()
+        return list(result.scalars().all())
+
+    async def update_settings(self, tg_id: int, **settings: Any) -> bool:
+        stmt = update(User).where(User.tg_id == tg_id).values(**settings)
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount > 0
