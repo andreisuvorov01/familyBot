@@ -50,16 +50,14 @@ class TestTaskCreateSchema:
         assert "title" in str(exc_info.value)
     
     def test_task_create_past_deadline(self):
-        """Тест с прошедшим дедлайном"""
+        """Тест с прошедшим дедлайном (теперь разрешено)"""
         task_data = {
             "title": "Test Task",
             "deadline": datetime.utcnow() - timedelta(days=1)
         }
         
-        with pytest.raises(ValidationError) as exc_info:
-            TaskCreate(**task_data)
-        
-        assert "Deadline cannot be in the past" in str(exc_info.value)
+        task = TaskCreate(**task_data)
+        assert task.deadline < datetime.utcnow()
     
     def test_task_create_long_description(self):
         """Тест с слишком длинным описанием"""

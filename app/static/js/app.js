@@ -770,6 +770,12 @@ function openSettings() {
     document.getElementById('overlay').onclick = closeModals;
 }
 
+function openHelp() {
+    document.getElementById('help-modal').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('overlay').onclick = closeModals;
+}
+
 async function setupSettings() {
     try {
         const profile = await api.getProfile();
