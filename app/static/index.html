@@ -44,6 +44,14 @@
             </div>
         </div>
 
+        <!-- Search and Filter -->
+        <div class="search-container" style="margin-bottom: 16px;">
+            <div style="position: relative;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); opacity: 0.5;"></i>
+                <input type="text" id="task-search" placeholder="Поиск задач..." style="padding-left: 40px; margin-bottom: 0; background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            </div>
+        </div>
+
         <!-- List -->
         <div id="task-list"></div>
     </div>
@@ -208,6 +216,38 @@
         </button>
     </div>
 
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <h2 class="text-xl font-bold mb-5 text-center text-main">Настройки</h2>
+
+        <div class="form-group">
+            <div class="form-row">
+                <span class="form-label">Уведомления</span>
+                <label class="switch">
+                    <input type="checkbox" id="settings-notif" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="form-row">
+                <span class="form-label">Режим создания</span>
+                <select id="settings-mode" class="time-select" style="font-size: 15px !important; color: var(--accent);">
+                    <option value="command">Команды</option>
+                    <option value="message">Сообщения</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="form-row" onclick="changeRoleFromApp()">
+                <span class="form-label">Изменить роль</span>
+                <span id="current-role" style="color: var(--accent); font-weight: 600;">Муж</span>
+            </div>
+        </div>
+
+        <button onclick="logout()" class="btn-destructive" style="margin-top: 12px; background: rgba(239, 68, 68, 0.1);">Выйти из аккаунта</button>
+    </div>
 
     <script src="/static/js/api.js"></script>
     <script src="/static/js/app.js"></script>
