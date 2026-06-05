@@ -2,6 +2,7 @@ from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 import os
+from app.core.config import settings
 
 _bot_instance: Bot | None = None
 
@@ -10,7 +11,7 @@ def get_bot() -> Bot:
     """Ленивая инициализация бота — не падает при импорте без токена"""
     global _bot_instance
     if _bot_instance is None:
-        token = os.getenv("BOT_TOKEN")
+        token = settings.BOT_TOKEN
         if not token:
             raise RuntimeError("BOT_TOKEN environment variable is not set")
         _bot_instance = Bot(
