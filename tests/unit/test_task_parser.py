@@ -1,5 +1,6 @@
 from app.bot.services.task_service import TaskParser
 from app.core.models.Task import TaskVisibility
+import pytz
 
 
 def test_parse_prefixed_private_task_with_deadline():
@@ -9,8 +10,12 @@ def test_parse_prefixed_private_task_with_deadline():
     assert title == "Купить молоко"
     assert visibility == TaskVisibility.WIFE
     assert deadline is not None
-    assert deadline.hour == 15
-    assert deadline.minute == 30
+
+    # Конвертируем обратно в Московское время для проверки
+    deadline_utc = pytz.UTC.localize(deadline)
+    deadline_msk = deadline_utc.astimezone(pytz.timezone('Europe/Moscow'))
+    assert deadline_msk.hour == 15
+    assert deadline_msk.minute == 30
 
 
 def test_parse_empty_task_returns_error():

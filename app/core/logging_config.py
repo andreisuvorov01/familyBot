@@ -1,6 +1,8 @@
 import logging
 import json
 import sys
+import asyncio
+import functools
 from datetime import datetime
 from typing import Any, Dict
 from logging.handlers import RotatingFileHandler
@@ -129,6 +131,7 @@ def log_with_context(
 # Декоратор для логирования вызовов функций
 def log_function_call(func):
     """Декоратор для логирования вызовов функций"""
+    @functools.wraps(func)
     async def async_wrapper(*args, **kwargs):
         log_with_context(
             "INFO",
@@ -151,6 +154,7 @@ def log_function_call(func):
             )
             raise
     
+    @functools.wraps(func)
     def sync_wrapper(*args, **kwargs):
         log_with_context(
             "INFO",
@@ -174,6 +178,3 @@ def log_function_call(func):
             raise
     
     return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
-
-
-import asyncio

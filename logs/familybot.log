@@ -51,3 +51,5 @@
 {"timestamp": "2026-06-05T14:16:11.410027", "level": "INFO", "logger": "familybot", "message": "Incoming request: GET /api/tasks/ - Client: 127.0.0.1", "module": "main", "function": "log_requests", "line": 70}
 {"timestamp": "2026-06-05T14:16:11.416736", "level": "WARNING", "logger": "familybot", "message": "Validation error: [{'field': 'args', 'message': 'Field required', 'type': 'missing'}, {'field': 'kwargs', 'message': 'Field required', 'type': 'missing'}]", "module": "", "function": null, "line": 0}
 {"timestamp": "2026-06-05T14:16:11.418247", "level": "INFO", "logger": "familybot", "message": "Request completed: GET /api/tasks/ - Status: 422 - Time: 0.009s", "module": "main", "function": "log_requests", "line": 79}
+{"timestamp": "2026-06-05T14:46:32.778079", "level": "INFO", "logger": "familybot", "message": "Calling sample_func", "module": "", "function": null, "line": 0}
+{"timestamp": "2026-06-05T14:46:32.778511", "level": "INFO", "logger": "familybot", "message": "Successfully executed sample_func", "module": "", "function": null, "line": 0}

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
+import pytz
 from typing import Optional
 
 from app.core.database import get_async_session
@@ -152,7 +153,9 @@ async def create_task(
         text = f"🆕 <b>Новая задача!</b>\n📌 {task_in.title}"
 
         if task_in.deadline:
-            deadline_msk = task_in.deadline + timedelta(hours=3)
+            # Превращаем наивный UTC из БД в осознанный UTC, затем в Московское время
+            deadline_utc = pytz.UTC.localize(task_in.deadline)
+            deadline_msk = deadline_utc.astimezone(pytz.timezone('Europe/Moscow'))
             time_str = deadline_msk.strftime('%d.%m в %H:%M')
             text += f"\n⏰ <b>Дедлайн:</b> {time_str}"
 

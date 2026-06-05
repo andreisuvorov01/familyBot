@@ -16,6 +16,7 @@ asyncpg==0.29.0
 
 # Telegram Bot
 aiogram==3.3.0
+pytz==2023.3
 
 # Scheduler
 apscheduler==3.10.4
