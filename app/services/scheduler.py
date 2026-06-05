@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import pytz
 from typing import Dict, List, Tuple
 from sqlalchemy import select
 from app.core.database import async_session_maker
@@ -41,12 +42,18 @@ async def send_morning_notifications():
                     if common_tasks:
                         message += f"• Общих: {len(common_tasks)}\n"
                     
-                    # Добавляем задачи с дедлайнами сегодня
-                    today = datetime.utcnow().date()
-                    today_tasks = [
-                        t for t in tasks 
-                        if t.deadline and t.deadline.date() == today
-                    ]
+                    # Добавляем задачи с дедлайнами сегодня (по Московскому времени)
+                    tz_moscow = pytz.timezone('Europe/Moscow')
+                    today_moscow = datetime.now(tz_moscow).date()
+
+                    today_tasks = []
+                    for t in tasks:
+                        if t.deadline:
+                            # t.deadline в БД хранится в UTC (naive)
+                            deadline_utc = pytz.UTC.localize(t.deadline)
+                            deadline_moscow = deadline_utc.astimezone(tz_moscow)
+                            if deadline_moscow.date() == today_moscow:
+                                today_tasks.append(t)
                     
                     if today_tasks:
                         message += f"\n⏰ Сегодня дедлайн у {len(today_tasks)} задач"
@@ -207,8 +214,9 @@ async def send_upcoming_notification(
     
     if len(tasks) == 1:
         task = tasks[0]
+        # Оба времени в UTC для корректного вычисления разницы
         time_left = task.deadline - datetime.utcnow()
-        minutes_left = int(time_left.total_seconds() / 60)
+        minutes_left = max(0, int(time_left.total_seconds() / 60))
         message = f"{prefix}Задача: {task.title}\nОсталось: {minutes_left} минут"
     else:
         task_list = "\n".join([f"• {task.title}" for task in tasks[:5]])
