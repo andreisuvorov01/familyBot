@@ -4,7 +4,7 @@ import pytz
 
 
 def test_parse_prefixed_private_task_with_deadline():
-    title, visibility, deadline, error = TaskParser.parse_message("л Купить молоко завтра в 15:30")
+    title, visibility, deadline, priority, error = TaskParser.parse_message("л Купить молоко завтра в 15:30")
 
     assert error is None
     assert title == "Купить молоко"
@@ -19,7 +19,7 @@ def test_parse_prefixed_private_task_with_deadline():
 
 
 def test_parse_empty_task_returns_error():
-    title, visibility, deadline, error = TaskParser.parse_message("л завтра 10:00")
+    title, visibility, deadline, priority, error = TaskParser.parse_message("л завтра 10:00")
 
     assert title == ""
     assert visibility == TaskVisibility.WIFE

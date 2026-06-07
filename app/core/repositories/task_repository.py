@@ -74,6 +74,7 @@ class TaskRepository:
         family_id: str,
         description: Optional[str] = None,
         visibility: TaskVisibility = TaskVisibility.COMMON,
+        priority: Optional[str] = None,
         deadline: Optional[datetime] = None,
         repeat_rule: Optional[str] = None
     ) -> Task:
@@ -81,6 +82,7 @@ class TaskRepository:
             title=title,
             description=description,
             visibility=visibility,
+            priority=priority,
             deadline=deadline,
             repeat_rule=repeat_rule,
             owner_id=owner_id,

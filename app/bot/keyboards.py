@@ -36,13 +36,15 @@ def get_main_inline_keyboard():
     )
     return keyboard
 
-def get_settings_keyboard(notifications_enabled: bool, creation_mode: str):
+def get_settings_keyboard(notifications_enabled: bool, morning_summary_enabled: bool, creation_mode: str):
     notif_text = "🔔 Уведомления: ВКЛ" if notifications_enabled else "🔕 Уведомления: ВЫКЛ"
+    summary_text = "🌅 Утренняя сводка: ВКЛ" if morning_summary_enabled else "🌅 Утренняя сводка: ВЫКЛ"
     mode_text = "✍️ Режим: Сообщения" if creation_mode == "message" else "💬 Режим: Команды"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=notif_text, callback_data="toggle_notifications")],
+            [InlineKeyboardButton(text=summary_text, callback_data="toggle_morning_summary")],
             [InlineKeyboardButton(text=mode_text, callback_data="toggle_creation_mode")],
             [InlineKeyboardButton(text="👤 Изменить роль", callback_data="change_role")],
             [InlineKeyboardButton(text="🔄 Сброс профиля", callback_data="confirm_reset")]

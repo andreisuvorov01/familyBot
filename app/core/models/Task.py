@@ -12,6 +12,12 @@ class TaskVisibility(str, enum.Enum):
     COMMON = "common"
 
 
+class TaskPriority(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 class Subtask(Base):
     __tablename__ = "subtasks"
 
@@ -33,6 +39,7 @@ class Task(Base):
     # --- НОВЫЕ ПОЛЯ ---
     deadline: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    priority: Mapped[TaskPriority | None] = mapped_column(Enum(TaskPriority), nullable=True)
     # ------------------
 
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
