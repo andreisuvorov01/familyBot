@@ -144,6 +144,7 @@ async def create_task(
         owner_id=user.id,
         family_id=user.family_id,
         visibility=final_visibility,
+        priority=task_in.priority.value if task_in.priority else None,
         deadline=task_in.deadline,
         repeat_rule=task_in.repeat_rule.value if task_in.repeat_rule else None
     )

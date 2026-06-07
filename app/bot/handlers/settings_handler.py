@@ -18,6 +18,7 @@ async def show_settings(message: types.Message, db_user: User):
         "Здесь вы можете изменить параметры работы бота:",
         reply_markup=get_settings_keyboard(
             db_user.notifications_enabled,
+            db_user.morning_summary_enabled,
             db_user.task_creation_mode.value
         )
     )
@@ -29,6 +30,7 @@ async def settings_callback(callback: types.CallbackQuery, db_user: User):
         "Здесь вы можете изменить параметры работы бота:",
         reply_markup=get_settings_keyboard(
             db_user.notifications_enabled,
+            db_user.morning_summary_enabled,
             db_user.task_creation_mode.value
         )
     )
@@ -42,10 +44,26 @@ async def toggle_notifications(callback: types.CallbackQuery, db_user: User, use
     await callback.message.edit_reply_markup(
         reply_markup=get_settings_keyboard(
             db_user.notifications_enabled,
+            db_user.morning_summary_enabled,
             db_user.task_creation_mode.value
         )
     )
     await callback.answer(f"Уведомления {'включены' if new_state else 'выключены'}")
+
+@router.callback_query(F.data == "toggle_morning_summary")
+async def toggle_morning_summary(callback: types.CallbackQuery, db_user: User, user_repo: UserRepository):
+    new_state = not db_user.morning_summary_enabled
+    await user_repo.update_settings(db_user.tg_id, morning_summary_enabled=new_state)
+    db_user.morning_summary_enabled = new_state
+
+    await callback.message.edit_reply_markup(
+        reply_markup=get_settings_keyboard(
+            db_user.notifications_enabled,
+            db_user.morning_summary_enabled,
+            db_user.task_creation_mode.value
+        )
+    )
+    await callback.answer(f"Утренняя сводка {'включена' if new_state else 'выключена'}")
 
 @router.callback_query(F.data == "toggle_creation_mode")
 async def toggle_creation_mode(callback: types.CallbackQuery, db_user: User, user_repo: UserRepository):
@@ -56,6 +74,7 @@ async def toggle_creation_mode(callback: types.CallbackQuery, db_user: User, use
     await callback.message.edit_reply_markup(
         reply_markup=get_settings_keyboard(
             db_user.notifications_enabled,
+            db_user.morning_summary_enabled,
             db_user.task_creation_mode.value
         )
     )

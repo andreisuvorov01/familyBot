@@ -23,4 +23,5 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=True)
     family_id: Mapped[str | None] = mapped_column(String(10), index=True)  # Код для связки пары
     notifications_enabled: Mapped[bool] = mapped_column(default=True)
+    morning_summary_enabled: Mapped[bool] = mapped_column(default=True)
     task_creation_mode: Mapped[TaskCreationMode] = mapped_column(Enum(TaskCreationMode), default=TaskCreationMode.COMMAND)
