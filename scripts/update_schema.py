@@ -1,9 +1,23 @@
 import asyncio
 import sys
 import os
+from pathlib import Path
 
 # Добавляем корневую директорию проекта в sys.path, чтобы импорт app работал
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(BASE_DIR))
+
+# Пытаемся загрузить .env вручную перед импортом настроек
+try:
+    from dotenv import load_dotenv
+    env_path = BASE_DIR / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+        print(f"Loaded .env from {env_path}")
+    else:
+        print(f"Warning: .env file not found at {env_path}")
+except ImportError:
+    print("Warning: python-dotenv not installed, skipping manual .env load")
 
 from sqlalchemy import text
 from app.core.database import engine
