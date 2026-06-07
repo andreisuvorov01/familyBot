@@ -2,19 +2,20 @@ import re
 import pytz
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from app.core.models.Task import TaskVisibility
+from app.core.models.Task import TaskVisibility, TaskPriority
 
 class TaskParser:
     @staticmethod
-    def parse_message(text: str) -> Tuple[str, TaskVisibility, Optional[datetime], Optional[str]]:
+    def parse_message(text: str) -> Tuple[str, TaskVisibility, Optional[datetime], Optional[TaskPriority], Optional[str]]:
         """
         Парсит сообщение задачи.
         Пример: 'л Купить молоко завтра в 15:00'
-        Возвращает: (title, visibility, deadline, error)
+        Возвращает: (title, visibility, deadline, priority, error)
         """
         visibility = TaskVisibility.COMMON
         title = text
         deadline = None
+        priority = None
 
         # Часовой пояс Москва
         tz_moscow = pytz.timezone('Europe/Moscow')
@@ -28,7 +29,18 @@ class TaskParser:
             visibility = TaskVisibility.COMMON
             title = text[2:].strip()
 
-        # 2. Простой парсинг времени (очень базовый)
+        # 2. Определяем приоритет (!, !!, !!!)
+        if '!!!' in title:
+            priority = TaskPriority.HIGH
+            title = title.replace('!!!', '').strip()
+        elif '!!' in title:
+            priority = TaskPriority.MEDIUM
+            title = title.replace('!!', '').strip()
+        elif '!' in title:
+            priority = TaskPriority.LOW
+            title = title.replace('!', '').strip()
+
+        # 3. Простой парсинг времени (очень базовый)
         deadline_local = None
 
         if 'сегодня' in title.lower():
@@ -57,6 +69,6 @@ class TaskParser:
             deadline = deadline_local.astimezone(pytz.UTC).replace(tzinfo=None)
 
         if not title:
-            return title, visibility, deadline, "Не удалось создать задачу: текст задачи пустой."
+            return title, visibility, deadline, priority, "Не удалось создать задачу: текст задачи пустой."
 
-        return title, visibility, deadline, None
+        return title, visibility, deadline, priority, None

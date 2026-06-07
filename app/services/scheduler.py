@@ -2,9 +2,10 @@ from datetime import datetime, timedelta
 import pytz
 from typing import Dict, List, Tuple
 from sqlalchemy import select
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.core.database import async_session_maker
 from app.core.models.user import User
-from app.core.models.Task import Task, TaskVisibility
+from app.core.models.Task import Task, TaskVisibility, TaskPriority
 from app.core.repositories.user_repository import UserRepository
 from app.core.repositories.task_repository import TaskRepository
 from app.core.logging_config import log_with_context, logger
@@ -17,8 +18,11 @@ async def send_morning_notifications():
         user_repo = UserRepository(session)
         task_repo = TaskRepository(session)
         
-        # Получаем всех пользователей с семьями
-        stmt = select(User).where(User.family_id != None)
+        # Получаем всех пользователей с семьями и включенной сводкой
+        stmt = select(User).where(
+            User.family_id != None,
+            User.morning_summary_enabled == True
+        )
         users = (await session.execute(stmt)).scalars().all()
         
         notifications_sent = 0
@@ -30,35 +34,33 @@ async def send_morning_notifications():
                 tasks = await task_repo.get_pending_tasks_by_family(user.family_id)
                 
                 if tasks:
-                    # Группируем задачи по типам
-                    personal_tasks = [t for t in tasks if t.visibility != TaskVisibility.COMMON]
-                    common_tasks = [t for t in tasks if t.visibility == TaskVisibility.COMMON]
+                    # Сортировка задач:
+                    # 1. Приоритет (HIGH > MEDIUM > LOW > None)
+                    # 2. Дедлайн (ближайшие раньше)
+                    priority_order = {TaskPriority.HIGH: 0, TaskPriority.MEDIUM: 1, TaskPriority.LOW: 2, None: 3}
                     
-                    message = f"☕ Доброе утро!\n"
-                    message += f"📋 Всего задач: {len(tasks)}\n"
+                    sorted_tasks = sorted(
+                        tasks,
+                        key=lambda x: (
+                            priority_order.get(x.priority, 3),
+                            x.deadline or datetime.max
+                        )
+                    )
                     
-                    if personal_tasks:
-                        message += f"• Личных: {len(personal_tasks)}\n"
-                    if common_tasks:
-                        message += f"• Общих: {len(common_tasks)}\n"
+                    message = f"☕ <b>Доброе утро!</b>\n\n"
+                    message += f"📋 <b>Задачи на сегодня:</b>\n"
                     
-                    # Добавляем задачи с дедлайнами сегодня (по Московскому времени)
-                    tz_moscow = pytz.timezone('Europe/Moscow')
-                    today_moscow = datetime.now(tz_moscow).date()
+                    for i, t in enumerate(sorted_tasks[:5], 1):
+                        p_mark = ""
+                        if t.priority == TaskPriority.HIGH: p_mark = "🔥 "
+                        elif t.priority == TaskPriority.MEDIUM: p_mark = "⚡ "
 
-                    today_tasks = []
-                    for t in tasks:
-                        if t.deadline:
-                            # t.deadline в БД хранится в UTC (naive)
-                            deadline_utc = pytz.UTC.localize(t.deadline)
-                            deadline_moscow = deadline_utc.astimezone(tz_moscow)
-                            if deadline_moscow.date() == today_moscow:
-                                today_tasks.append(t)
+                        message += f"{i}. {p_mark}{t.title}\n"
                     
-                    if today_tasks:
-                        message += f"\n⏰ Сегодня дедлайн у {len(today_tasks)} задач"
+                    if len(tasks) > 5:
+                        message += f"<i>...и еще {len(tasks) - 5} в списке</i>\n"
                     
-                    await bot.send_message(user.tg_id, message)
+                    await bot.send_message(user.tg_id, message, parse_mode="HTML")
                     notifications_sent += 1
                     
                     log_with_context(
@@ -188,17 +190,28 @@ async def send_expired_notification(
         return
     
     prefix = "🔔 Партнер пропустил дедлайн!\n" if is_partner else "🔥 <b>Дедлайн пропущен!</b>\n"
+    keyboard = None
     
     if len(tasks) == 1:
         task = tasks[0]
         message = f"{prefix}Задача: {task.title}"
+        if not is_partner:
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Выполнено", callback_data=f"complete_task_{task.id}")]
+            ])
     else:
         task_list = "\n".join([f"• {task.title}" for task in tasks[:5]])
         if len(tasks) > 5:
             task_list += f"\n• ...и еще {len(tasks) - 5}"
         message = f"{prefix}Просроченные задачи:\n{task_list}"
+
+        if not is_partner:
+            buttons = []
+            for task in tasks[:5]:
+                buttons.append([InlineKeyboardButton(text=f"✅ {task.title[:20]}", callback_data=f"complete_task_{task.id}")])
+            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     
-    await bot.send_message(user.tg_id, message, parse_mode="HTML")
+    await bot.send_message(user.tg_id, message, parse_mode="HTML", reply_markup=keyboard)
 
 
 async def send_upcoming_notification(
@@ -211,6 +224,7 @@ async def send_upcoming_notification(
         return
     
     prefix = "🔔 У партнера скоро дедлайн!\n" if is_partner else "⏰ <b>Скоро дедлайн!</b>\n"
+    keyboard = None
     
     if len(tasks) == 1:
         task = tasks[0]
@@ -218,10 +232,20 @@ async def send_upcoming_notification(
         time_left = task.deadline - datetime.utcnow()
         minutes_left = max(0, int(time_left.total_seconds() / 60))
         message = f"{prefix}Задача: {task.title}\nОсталось: {minutes_left} минут"
+        if not is_partner:
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Выполнено", callback_data=f"complete_task_{task.id}")]
+            ])
     else:
         task_list = "\n".join([f"• {task.title}" for task in tasks[:5]])
         if len(tasks) > 5:
             task_list += f"\n• ...и еще {len(tasks) - 5}"
         message = f"{prefix}Скоро дедлайн у задач:\n{task_list}\nОсталось меньше 30 минут"
+
+        if not is_partner:
+            buttons = []
+            for task in tasks[:5]:
+                buttons.append([InlineKeyboardButton(text=f"✅ {task.title[:20]}", callback_data=f"complete_task_{task.id}")])
+            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     
-    await bot.send_message(user.tg_id, message, parse_mode="HTML")
+    await bot.send_message(user.tg_id, message, parse_mode="HTML", reply_markup=keyboard)

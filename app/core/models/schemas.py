@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
-from .Task import TaskVisibility
+from .Task import TaskVisibility, TaskPriority
 from .user import TaskCreationMode, UserRole
 
 
@@ -21,6 +21,12 @@ class TaskStatusEnum(str, Enum):
     PENDING = "pending"
     DONE = "done"
     CANCELLED = "cancelled"
+
+
+class TaskPriorityEnum(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 
 class SubtaskBase(BaseModel):
@@ -54,6 +60,7 @@ class UserSettingsRead(BaseModel):
     role: Optional[UserRole] = None
     family_id: str
     notifications_enabled: bool
+    morning_summary_enabled: bool
     task_creation_mode: TaskCreationMode
 
     model_config = {"from_attributes": True}
@@ -61,6 +68,7 @@ class UserSettingsRead(BaseModel):
 
 class UserSettingsUpdate(BaseModel):
     notifications_enabled: Optional[bool] = None
+    morning_summary_enabled: Optional[bool] = None
     task_creation_mode: Optional[TaskCreationMode] = None
     role: Optional[UserRole] = None
 
@@ -76,6 +84,7 @@ class TaskRead(BaseModel):
     status: str
     repeat_rule: Optional[str] = None
     visibility: TaskVisibility
+    priority: Optional[TaskPriority] = None
     deadline: Optional[datetime] = None
     created_at: datetime
     subtasks: List[SubtaskRead] = Field(default_factory=list)
@@ -94,6 +103,7 @@ class TaskCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1024)
     visibility: TaskVisibilityEnum = TaskVisibilityEnum.COMMON
+    priority: Optional[TaskPriorityEnum] = None
     deadline: Optional[datetime] = None
     repeat_rule: Optional[RepeatRuleEnum] = None
 
@@ -113,6 +123,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=1024)
     deadline: Optional[datetime] = None
     visibility: Optional[TaskVisibilityEnum] = None
+    priority: Optional[TaskPriorityEnum] = None
     repeat_rule: Optional[RepeatRuleEnum] = None
 
     @field_validator('deadline')
