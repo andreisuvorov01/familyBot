@@ -1,6 +1,12 @@
 import asyncio
+import sys
+import os
+
+# Добавляем корневую директорию проекта в sys.path, чтобы импорт app работал
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from sqlalchemy import text
-from app.core.database import async_session_maker, engine
+from app.core.database import engine
 from app.core.logging_config import logger
 
 async def update_schema():
