@@ -2,7 +2,9 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from app.bot.keyboards import get_main_inline_keyboard
 from app.core.models.user import User, UserRole, TaskCreationMode
-from app.core.models.Task import TaskVisibility
+from sqlalchemy.orm import selectinload
+from sqlalchemy import select
+from app.core.models.Task import Task, TaskVisibility
 from app.core.repositories.task_repository import TaskRepository
 from app.bot.services.task_service import TaskParser
 import pytz
@@ -155,10 +157,6 @@ async def complete_task_callback(callback: types.CallbackQuery, db_user: User, s
     try:
         task_id = int(callback.data.replace("complete_task_", ""))
         task_repo = TaskRepository(session)
-
-        from sqlalchemy.orm import selectinload
-        from sqlalchemy import select
-        from app.core.models.Task import Task, TaskVisibility
 
         visibilities = [TaskVisibility.COMMON]
         if db_user.role == UserRole.HUSBAND:
