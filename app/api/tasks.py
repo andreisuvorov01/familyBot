@@ -12,7 +12,6 @@ from app.core.models.schemas import (
     UserSettingsRead, UserSettingsUpdate
 )
 from app.api.security import verify_telegram_data
-from app.core.security.rate_limiter import check_auth_rate_limit
 from app.core.logging_config import log_with_context, log_function_call
 from app.core.repositories.user_repository import UserRepository
 from app.core.repositories.task_repository import TaskRepository
@@ -27,15 +26,9 @@ async def get_current_user(
         session: AsyncSession = Depends(get_async_session)
 ) -> User:
     try:
-        # Rate limiting для аутентификации
+        # Валидация данных Telegram
         user_data = verify_telegram_data(init_data)
         tg_id = user_data["id"]
-        
-        if not check_auth_rate_limit(tg_id):
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many authentication attempts"
-            )
         
         user_repo = UserRepository(session)
         user = await user_repo.get_by_tg_id(tg_id)

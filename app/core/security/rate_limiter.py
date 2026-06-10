@@ -19,7 +19,7 @@ class InMemoryRateLimiter:
         self.requests: Dict[str, list] = defaultdict(list)
         self.limits = {
             "api": (60, 100),    # 100 запросов в минуту
-            "auth": (300, 10),   # 10 попыток за 5 минут
+            "auth": (300, 1000), # 1000 запросов за 5 минут (мягкий лимит)
             "bot": (60, 30),     # 30 сообщений в минуту
         }
 
