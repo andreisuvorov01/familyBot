@@ -1,14 +1,19 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from app.core.models.base import Base
 from app.core.config import settings
 
-database_url = settings.DATABASE_URL
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
-elif database_url.startswith("postgresql://"):
-    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif not database_url.startswith("postgresql+asyncpg://"):
+
+def normalize_database_url(url: str) -> str:
+    """Приводит DATABASE_URL к драйверу asyncpg (поддерживается только PostgreSQL)."""
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql+asyncpg://"):
+        return url
     raise RuntimeError("FamilyBot now supports PostgreSQL only. Set DATABASE_URL to postgresql+asyncpg://...")
+
+
+database_url = normalize_database_url(settings.DATABASE_URL)
 
 # Асинхронный engine
 engine = create_async_engine(database_url, echo=False, pool_pre_ping=True)

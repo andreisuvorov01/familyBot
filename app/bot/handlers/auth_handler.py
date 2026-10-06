@@ -7,8 +7,12 @@ from app.bot.keyboards import get_role_keyboard, get_family_keyboard, get_main_m
 from app.core.models.user import User, UserRole
 from app.core.repositories.user_repository import UserRepository
 from app.core.logging_config import log_with_context
+from app.services.notifications import h, send_safe
+from app.services.task_service import TaskService
 
 router = Router()
+
+MAX_FAMILY_SIZE = 2
 
 class FamilyStates(StatesGroup):
     wait_for_code = State()
@@ -107,6 +111,10 @@ async def process_family_code(message: types.Message, state: FSMContext, bot: Bo
         await message.answer("🤔 Это ваш собственный код...")
         return
 
+    if len(users_in_family) >= MAX_FAMILY_SIZE:
+        await message.answer("❌ В этой семье уже два участника. Попросите партнёра прислать актуальный код.")
+        return
+
     await user_repo.update_family_id(message.from_user.id, code)
     await state.clear()
 
@@ -114,24 +122,15 @@ async def process_family_code(message: types.Message, state: FSMContext, bot: Bo
     await message.answer("Управление задачами:", reply_markup=get_main_inline_keyboard())
 
     # Уведомление партнеру
-    partner = users_in_family[0]
-    try:
-        await bot.send_message(
-            partner.tg_id,
-            f"🔔 Партнер @{message.from_user.username or 'без имени'} присоединился к вашей семье!"
-        )
-    except:
-        pass
+    name = f"@{message.from_user.username}" if message.from_user.username else "без имени"
+    for partner in users_in_family:
+        await send_safe(partner.tg_id, f"🔔 Партнер {h(name)} присоединился к вашей семье!")
 
 @router.callback_query(F.data == "reset_confirmed")
-async def reset_confirmed(callback: types.CallbackQuery, user_repo: UserRepository, db_user: User):
-    from app.core.repositories.task_repository import TaskRepository
-    from app.core.database import async_session_maker
-
-    async with async_session_maker() as session:
-        task_repo = TaskRepository(session)
-        # Удаляем все задачи пользователя, включая личные задачи прежней роли
-        await task_repo.delete_tasks_by_owner(db_user.id, db_user.family_id)
-
-    await user_repo.delete_user(db_user.tg_id)
+async def reset_confirmed(callback: types.CallbackQuery, db_user: User, session):
+    if not db_user:
+        await callback.answer()
+        return
+    # Удаляет задачи пользователя (и их события в Google Calendar), затем профиль
+    await TaskService(session).delete_user(db_user)
     await callback.message.edit_text("🗑 Ваш профиль и задачи полностью удалены.\nНажмите /start для новой регистрации.")

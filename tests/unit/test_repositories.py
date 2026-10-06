@@ -81,28 +81,36 @@ class TestTaskRepository:
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = mock_tasks
         mock_session.execute.return_value = mock_result
-        
+
         # Act
-        tasks = await task_repo.get_family_tasks("FAM123", UserRole.HUSBAND)
-        
+        user = User(id=1, family_id="FAM123", role=UserRole.HUSBAND)
+        tasks = await task_repo.get_family_tasks(user)
+
         # Assert
         assert len(tasks) == 2
         mock_session.execute.assert_called_once()
-    
+
     @pytest.mark.asyncio
-    async def test_create_task(self, task_repo, mock_session):
-        # Act
-        task = await task_repo.create_task(
-            title="Test Task",
-            owner_id=1,
-            family_id="FAM123",
-            description="Test description",
-            visibility=TaskVisibility.COMMON
-        )
-        
-        # Assert
-        assert task.title == "Test Task"
-        assert task.family_id == "FAM123"
-        mock_session.add.assert_called_once()
-        mock_session.commit.assert_called_once()
-        mock_session.refresh.assert_called_once()
+    async def test_visibility_filter_uses_owner(self, task_repo, mock_session):
+        """Личные задачи фильтруются по owner_id, а не по роли."""
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await task_repo.get_family_tasks(User(id=7, family_id="FAM123", role=UserRole.WIFE))
+
+        stmt = mock_session.execute.call_args.args[0]
+        compiled = str(stmt.compile(compile_kwargs={"literal_binds": True}))
+        assert "tasks.owner_id = 7" in compiled
+        assert "WIFE" not in compiled
+
+    @pytest.mark.asyncio
+    async def test_add_task_flushes_without_commit(self, task_repo, mock_session):
+        task = Task(title="Test Task", owner_id=1, family_id="FAM123", visibility=TaskVisibility.COMMON)
+
+        result = await task_repo.add(task)
+
+        assert result is task
+        mock_session.add.assert_called_once_with(task)
+        mock_session.flush.assert_called_once()
+        mock_session.commit.assert_not_called()
