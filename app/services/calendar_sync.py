@@ -31,6 +31,7 @@ RECONNECT_MESSAGE = "Доступ к Google Календарю отозван �
 
 # --- Постановка в очередь (вызывается из TaskService, без commit) ---
 
+
 async def family_has_google(session: AsyncSession, family_id: str) -> bool:
     if not settings.google_enabled:
         return False
@@ -50,9 +51,9 @@ async def enqueue_upsert(session: AsyncSession, task: Task) -> None:
 
 async def enqueue_delete(session: AsyncSession, task: Task) -> None:
     """Вызывать ДО удаления задачи: связи с событиями удалятся каскадом."""
-    links = (await session.execute(
-        select(TaskCalendarEvent).where(TaskCalendarEvent.task_id == task.id)
-    )).scalars().all()
+    links = (
+        (await session.execute(select(TaskCalendarEvent).where(TaskCalendarEvent.task_id == task.id))).scalars().all()
+    )
     if links:
         payload = [{"user_id": link.user_id, "event_id": link.event_id} for link in links]
         session.add(CalendarSyncJob(task_id=task.id, action="delete", payload=payload, next_attempt_at=utcnow()))
@@ -73,6 +74,7 @@ async def enqueue_full_resync(session: AsyncSession, user: User) -> int:
 
 
 # --- Обработка ---
+
 
 class _SyncContext:
     """Кэш access token'ов на один прогон и обработка отозванного доступа."""
@@ -123,9 +125,9 @@ async def _handle_upsert(ctx: _SyncContext, task_id: int) -> None:
     accounts = await _family_accounts(session, task.family_id)
     links = {
         link.user_id: link
-        for link in (await session.execute(
-            select(TaskCalendarEvent).where(TaskCalendarEvent.task_id == task.id)
-        )).scalars().all()
+        for link in (await session.execute(select(TaskCalendarEvent).where(TaskCalendarEvent.task_id == task.id)))
+        .scalars()
+        .all()
     }
     targets = {task.owner_id} if task.visibility != TaskVisibility.COMMON else set(accounts)
 
@@ -134,26 +136,29 @@ async def _handle_upsert(ctx: _SyncContext, task_id: int) -> None:
         user = await session.get(User, user_id)
         body = gc.build_event(task, user.timezone if user else settings.DEFAULT_TIMEZONE)
         api = await ctx.api_for(account)
-        if api is None:
+        calendar_id = account.calendar_id
+        if api is None or not calendar_id:
             continue
 
         if body is None or user_id not in targets:
             # Задача стала личной/без дедлайна/отменена — убираем событие
             if link:
-                await api.delete_event(account.calendar_id, link.event_id)
+                await api.delete_event(calendar_id, link.event_id)
                 await session.delete(link)
             continue
 
         if link:
             try:
-                event = await api.patch_event(account.calendar_id, link.event_id, body)
+                event = await api.patch_event(calendar_id, link.event_id, body)
             except gc.EventNotFound:
-                event = await api.insert_event(account.calendar_id, body)
+                event = await api.insert_event(calendar_id, body)
                 link.event_id = event["id"]
             link.etag = event.get("etag")
         else:
-            event = await api.insert_event(account.calendar_id, body)
-            session.add(TaskCalendarEvent(task_id=task.id, user_id=user_id, event_id=event["id"], etag=event.get("etag")))
+            event = await api.insert_event(calendar_id, body)
+            session.add(
+                TaskCalendarEvent(task_id=task.id, user_id=user_id, event_id=event["id"], etag=event.get("etag"))
+            )
 
     # Связи пользователей, у которых календарь отключён, просто забываем
     for user_id, link in links.items():
@@ -208,7 +213,7 @@ async def process_sync_jobs() -> None:
                     log_with_context("ERROR", f"Calendar sync job dropped: {e}", job_id=job.id, task_id=job.task_id)
                     await session.delete(job)
                 else:
-                    job.next_attempt_at = utcnow() + timedelta(minutes=min(2 ** job.attempts, 360))
+                    job.next_attempt_at = utcnow() + timedelta(minutes=min(2**job.attempts, 360))
         await session.commit()
         logger.info(f"Calendar sync: {processed} jobs processed, {failed} failed")
 
@@ -227,7 +232,7 @@ def _event_deadline(event: dict, tz_name: str) -> Optional[datetime]:
 async def _pull_account(ctx: _SyncContext, account: GoogleAccount) -> None:
     session = ctx.session
     api = await ctx.api_for(account)
-    if api is None:
+    if api is None or not account.calendar_id:
         return
     try:
         items, next_token = await api.list_changes(account.calendar_id, account.sync_token)
@@ -246,12 +251,14 @@ async def _pull_account(ctx: _SyncContext, account: GoogleAccount) -> None:
 
 
 async def _apply_event(session: AsyncSession, account: GoogleAccount, event: dict, tz_name: str) -> None:
-    link = (await session.execute(
-        select(TaskCalendarEvent).where(
-            TaskCalendarEvent.user_id == account.user_id,
-            TaskCalendarEvent.event_id == event.get("id"),
+    link = (
+        await session.execute(
+            select(TaskCalendarEvent).where(
+                TaskCalendarEvent.user_id == account.user_id,
+                TaskCalendarEvent.event_id == event.get("id"),
+            )
         )
-    )).scalar_one_or_none()
+    ).scalar_one_or_none()
     if link is None or event.get("etag") == link.etag:
         return  # чужое событие или наше собственное изменение
 
@@ -292,9 +299,15 @@ async def pull_calendar_changes() -> None:
     if not settings.google_enabled:
         return
     async with async_session_maker() as session, httpx.AsyncClient() as http:
-        accounts = (await session.execute(
-            select(GoogleAccount).where(GoogleAccount.enabled.is_(True), GoogleAccount.calendar_id.is_not(None))
-        )).scalars().all()
+        accounts = (
+            (
+                await session.execute(
+                    select(GoogleAccount).where(GoogleAccount.enabled.is_(True), GoogleAccount.calendar_id.is_not(None))
+                )
+            )
+            .scalars()
+            .all()
+        )
         ctx = _SyncContext(session, http)
         for account in accounts:
             try:

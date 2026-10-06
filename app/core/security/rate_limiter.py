@@ -9,14 +9,15 @@ from fastapi.responses import JSONResponse
 # Попытка подключить Redis для распределённого rate limiting
 try:
     import redis.asyncio as aioredis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
 
 LIMITS = {
-    "api": (60, 100),          # 100 запросов в минуту с IP
-    "auth_fail": (300, 10),    # 10 неудачных авторизаций за 5 минут с IP
-    "bot": (60, 30),           # 30 сообщений в минуту
+    "api": (60, 100),  # 100 запросов в минуту с IP
+    "auth_fail": (300, 10),  # 10 неудачных авторизаций за 5 минут с IP
+    "bot": (60, 30),  # 30 сообщений в минуту
 }
 
 

@@ -7,11 +7,11 @@
 import asyncio
 from pathlib import Path
 
-from alembic import command
-from alembic.config import Config
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from alembic import command
+from alembic.config import Config
 from app.core.config import settings
 from app.core.database import normalize_database_url
 from app.core.logging_config import logger
@@ -42,6 +42,7 @@ def _alembic_config() -> Config:
 
 def _is_legacy_database() -> bool:
     """True, если таблицы есть, а версии Alembic нет."""
+
     async def check() -> bool:
         engine = create_async_engine(normalize_database_url(settings.DATABASE_URL))
         try:

@@ -51,9 +51,7 @@ class Task(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now()
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    completed_by_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    )
+    completed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     subtasks: Mapped[list["Subtask"]] = relationship(
         "Subtask", backref="task", lazy="selectin", cascade="all, delete-orphan"

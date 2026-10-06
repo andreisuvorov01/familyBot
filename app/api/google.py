@@ -100,13 +100,17 @@ async def google_callback(
     if not user:
         return _result_page("Пользователь не найден", "Начните заново из бота.", ok=False)
     if error or not code:
-        return _result_page("Подключение отменено", "Google Календарь не подключён. Можно попробовать ещё раз из Mini App.", ok=False)
+        return _result_page(
+            "Подключение отменено", "Google Календарь не подключён. Можно попробовать ещё раз из Mini App.", ok=False
+        )
 
     try:
         tokens = await gc.exchange_code(code)
         refresh_token = tokens.get("refresh_token")
         if not refresh_token:
-            return _result_page("Не получен доступ", "Google не выдал постоянный доступ. Попробуйте подключить ещё раз.", ok=False)
+            return _result_page(
+                "Не получен доступ", "Google не выдал постоянный доступ. Попробуйте подключить ещё раз.", ok=False
+            )
 
         account = await session.get(GoogleAccount, user.id)
         async with httpx.AsyncClient() as http:
@@ -140,7 +144,9 @@ async def google_callback(
         "📅 <b>Google Календарь подключён!</b>\n"
         f"Задачи с дедлайном появятся в календаре «{gc.CALENDAR_NAME}» в течение минуты.",
     )
-    return _result_page("Календарь подключён", "Можно вернуться в Telegram — задачи с дедлайном скоро появятся в календаре «FamilyBot».")
+    return _result_page(
+        "Календарь подключён", "Можно вернуться в Telegram — задачи с дедлайном скоро появятся в календаре «FamilyBot»."
+    )
 
 
 @router.post("/resync")

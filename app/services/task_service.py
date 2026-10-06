@@ -36,6 +36,7 @@ class TaskNotFound(TaskError):
 @dataclass
 class StatusChange:
     """Что произошло при смене статуса — для текста уведомлений."""
+
     kind: str  # "completed" | "rescheduled" | "reopened" | "cancelled" | "none"
 
 
@@ -248,7 +249,7 @@ class TaskService:
         tasks = await self.tasks.get_family_tasks(user)
         now = utcnow()
         pending = [t for t in tasks if t.status == "pending"]
-        completions = await self.tasks.get_completions(user.family_id, now - timedelta(days=60))
+        completions = await self.tasks.get_completions(user.family_id or "", now - timedelta(days=60))
 
         members = [user] + await self.users.get_partners(user)
         week_ago, month_ago = now - timedelta(days=7), now - timedelta(days=30)

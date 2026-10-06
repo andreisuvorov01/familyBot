@@ -1,6 +1,8 @@
 from typing import Any, Optional
-from sqlalchemy import select, update, delete
+
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.models.user import User, UserRole
 
 
@@ -40,10 +42,7 @@ class UserRepository:
         """Остальные участники семьи (устойчиво к семьям больше двух человек)."""
         if not user.family_id:
             return []
-        stmt = select(User).where(
-            User.family_id == user.family_id,
-            User.id != user.id
-        ).order_by(User.id)
+        stmt = select(User).where(User.family_id == user.family_id, User.id != user.id).order_by(User.id)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

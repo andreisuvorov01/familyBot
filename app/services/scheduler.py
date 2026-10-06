@@ -16,8 +16,13 @@ from app.services.notifications import h, open_app_button, open_task_button, sen
 MORNING_HOUR = 9
 # Задание запускается каждые 15 минут; сводку получает тот, у кого сейчас 09:00–09:14
 MORNING_WINDOW_MINUTES = 15
-PRIORITY_ORDER = {TaskPriority.HIGH: 0, TaskPriority.MEDIUM: 1, TaskPriority.LOW: 2, None: 3}
-PRIORITY_MARK = {TaskPriority.HIGH: "🔥 ", TaskPriority.MEDIUM: "⚡ "}
+PRIORITY_ORDER: dict[TaskPriority | None, int] = {
+    TaskPriority.HIGH: 0,
+    TaskPriority.MEDIUM: 1,
+    TaskPriority.LOW: 2,
+    None: 3,
+}
+PRIORITY_MARK: dict[TaskPriority | None, str] = {TaskPriority.HIGH: "🔥 ", TaskPriority.MEDIUM: "⚡ "}
 
 
 def _is_morning(now_utc: datetime, tz_name: str) -> bool:
@@ -44,7 +49,7 @@ def build_morning_summary(tasks: List[Task], tz_name: str, now_utc: datetime) ->
     if not (overdue or today or important):
         return None
 
-    def key(t: Task):
+    def key(t: Task) -> tuple[int, datetime]:
         return PRIORITY_ORDER.get(t.priority, 3), t.deadline or datetime.max
 
     def line(t: Task, with_time: bool) -> str:
@@ -57,7 +62,7 @@ def build_morning_summary(tasks: List[Task], tz_name: str, now_utc: datetime) ->
         parts += [line(t, False) for t in sorted(overdue, key=key)[:5]]
     if today:
         parts.append("\n📋 <b>На сегодня:</b>")
-        parts += [line(t, True) for t in sorted(today, key=lambda t: t.deadline)[:7]]
+        parts += [line(t, True) for t in sorted(today, key=lambda t: t.deadline or datetime.max)[:7]]
     if important:
         parts.append("\n⭐ <b>Важное без даты:</b>")
         parts += [line(t, False) for t in important[:3]]
@@ -182,8 +187,9 @@ async def send_upcoming_notification(user: User, tasks: List[Task], is_partner: 
     if not tasks:
         return 0
     prefix = "🔔 <b>У партнера скоро дедлайн!</b>\n" if is_partner else "⏰ <b>Скоро дедлайн!</b>\n"
-    if len(tasks) == 1:
+    if len(tasks) == 1 and tasks[0].deadline:
         task = tasks[0]
+        assert task.deadline is not None
         minutes_left = max(0, int((task.deadline - utcnow()).total_seconds() / 60))
         message = (
             f"{prefix}Задача: {h(task.title)}\n"

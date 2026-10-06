@@ -72,7 +72,15 @@ def fake_google(monkeypatch):
 
 async def connect(user_id: int, calendar_id: str, token: str = "refresh"):
     async with async_session_maker() as s:
-        s.add(GoogleAccount(user_id=user_id, refresh_token_enc=encrypt(token), calendar_id=calendar_id, enabled=True, sync_token="t0"))
+        s.add(
+            GoogleAccount(
+                user_id=user_id,
+                refresh_token_enc=encrypt(token),
+                calendar_id=calendar_id,
+                enabled=True,
+                sync_token="t0",
+            )
+        )
         await s.commit()
 
 
@@ -106,7 +114,10 @@ async def test_common_task_goes_to_both_calendars(client, family, fake_google):
         assert event["colorId"] == "11"
         assert event["end"]["dateTime"] == "2030-05-01T10:00:00Z"
         assert event["extendedProperties"]["private"]["familybot_task_id"] == str(task["id"])
-    assert fake_google.calendars["cal-w"][next(iter(fake_google.calendars["cal-w"]))]["start"]["timeZone"] == "Asia/Yekaterinburg"
+    assert (
+        fake_google.calendars["cal-w"][next(iter(fake_google.calendars["cal-w"]))]["start"]["timeZone"]
+        == "Asia/Yekaterinburg"
+    )
     assert await count(CalendarSyncJob) == 0
 
 
@@ -202,7 +213,14 @@ async def test_status_and_disconnect(client, family, fake_google, monkeypatch):
 
     monkeypatch.setattr(gc, "revoke_token", fake_revoke)
     status = (await client.get("/api/google/status", headers=auth(101))).json()
-    assert status == {"available": True, "connected": False, "enabled": False, "email": None, "last_error": None, "last_synced_at": None}
+    assert status == {
+        "available": True,
+        "connected": False,
+        "enabled": False,
+        "email": None,
+        "last_error": None,
+        "last_synced_at": None,
+    }
 
     url = (await client.post("/api/google/auth-url", headers=auth(101))).json()["url"]
     assert url.startswith("https://accounts.google.com/") and "calendar.app.created" in url and "state=" in url

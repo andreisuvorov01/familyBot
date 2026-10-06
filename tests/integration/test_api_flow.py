@@ -113,14 +113,18 @@ async def test_many_requests_do_not_hit_auth_limit(client, family):
 
 
 async def test_invalid_signature_rejected(client, family):
-    resp = await client.get("/api/tasks/", headers={"X-TG-Data": "user=%7B%22id%22%3A101%7D&auth_date=9999999999&hash=bad"})
+    resp = await client.get(
+        "/api/tasks/", headers={"X-TG-Data": "user=%7B%22id%22%3A101%7D&auth_date=9999999999&hash=bad"}
+    )
     assert resp.status_code == 403
 
 
 async def test_subtasks_and_delete(client, family):
     task = await create(client, 101)
     sub = (await client.post(f"/api/tasks/{task['id']}/subtasks", json={"title": "Пункт"}, headers=auth(101))).json()
-    assert (await client.patch(f"/api/tasks/subtasks/{sub['id']}", json={"is_done": True}, headers=auth(202))).status_code == 200
+    assert (
+        await client.patch(f"/api/tasks/subtasks/{sub['id']}", json={"is_done": True}, headers=auth(202))
+    ).status_code == 200
     assert (await client.delete(f"/api/tasks/subtasks/{sub['id']}", headers=auth(101))).status_code == 200
     assert (await client.delete(f"/api/tasks/{task['id']}", headers=auth(202))).status_code == 200
     async with async_session_maker() as s:

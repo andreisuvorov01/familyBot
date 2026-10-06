@@ -48,6 +48,7 @@ class SyncTokenExpired(GoogleApiError):
 
 # --- OAuth ---
 
+
 def build_auth_url(state: str) -> str:
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
@@ -64,13 +65,16 @@ def build_auth_url(state: str) -> str:
 
 async def exchange_code(code: str) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=TIMEOUT) as http:
-        resp = await http.post(TOKEN_URL, data={
-            "code": code,
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": settings.google_redirect_uri,
-            "grant_type": "authorization_code",
-        })
+        resp = await http.post(
+            TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
     if resp.status_code != 200:
         raise GoogleApiError(resp.status_code, resp.text[:300])
     return resp.json()
@@ -88,12 +92,15 @@ def email_from_id_token(id_token: str | None) -> str | None:
 
 async def refresh_access_token(refresh_token: str) -> str:
     async with httpx.AsyncClient(timeout=TIMEOUT) as http:
-        resp = await http.post(TOKEN_URL, data={
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "refresh_token": refresh_token,
-            "grant_type": "refresh_token",
-        })
+        resp = await http.post(
+            TOKEN_URL,
+            data={
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+        )
     if resp.status_code in (400, 401) and "invalid_grant" in resp.text:
         raise GoogleAuthError("invalid_grant")
     if resp.status_code != 200:
@@ -107,6 +114,7 @@ async def revoke_token(token: str) -> None:
 
 
 # --- Calendar API ---
+
 
 class CalendarApi:
     def __init__(self, access_token: str, http: httpx.AsyncClient):
@@ -173,6 +181,7 @@ class CalendarApi:
 
 
 # --- Сопоставление задачи и события ---
+
 
 def _rfc3339(value: datetime) -> str:
     return value.replace(microsecond=0).isoformat() + "Z"

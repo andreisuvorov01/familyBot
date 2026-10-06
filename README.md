@@ -7,8 +7,10 @@
 - **Семейная регистрация** - создание семьи с уникальным кодом
 - **Управление задачами** - личные и общие задачи с дедлайнами
 - **Повторяющиеся задачи** - ежедневные, еженедельные, ежемесячные
-- **Уведомления** - утренние сводки и напоминания о дедлайнах
-- **Веб-интерфейс** - современный SPA с календарем
+- **Уведомления** - утренняя сводка в 09:00 по часовому поясу пользователя и напоминания о дедлайнах
+- **Приоритеты и подзадачи** - `!`, `!!`, `!!!` в чате или выбор в Mini App
+- **Mini App** - группировка по срокам, календарь (месяц/неделя), статистика, свайпы, отмена удаления
+- **Google Calendar** - двусторонняя синхронизация задач с дедлайном
 - **Безопасность** - rate limiting, валидация, логирование
 
 ## 🏗️ Архитектура
@@ -61,9 +63,18 @@ pip install -r requirements.txt
 
 ### 4. Настройка базы данных
 ```bash
-python migrate.py
+python migrate.py   # = alembic upgrade head
 # DATABASE_URL должен указывать на PostgreSQL, например:
 # postgresql+asyncpg://familybot:password@localhost:5432/familybot
+```
+
+Схема управляется Alembic (`alembic/versions`). API применяет миграции при старте
+(отключается `RUN_MIGRATIONS_ON_STARTUP=false`). Базы, созданные старыми версиями
+через `create_all`, распознаются и помечаются базовой ревизией автоматически.
+
+Новая миграция после изменения моделей:
+```bash
+alembic revision --autogenerate -m "описание"
 ```
 
 ### 5. Запуск приложения
@@ -83,6 +94,27 @@ python bot_polling.py
 - Обновите `WEBAPP_URL` в `.env` файле
 - Настройте веб-приложение в @BotFather
 
+### 7. Google Calendar (опционально)
+1. В [Google Cloud Console](https://console.cloud.google.com/) создайте проект и включите **Google Calendar API**.
+2. Настройте **OAuth consent screen** (тип External) и добавьте scope
+   `https://www.googleapis.com/auth/calendar.app.created` — доступ только к календарям, созданным приложением.
+3. Переведите приложение в статус **In production**. В статусе *Testing* refresh token
+   живёт 7 дней, и синхронизация будет отваливаться каждую неделю. Без верификации
+   пользователи увидят предупреждение «приложение не проверено» — для семейного бота это нормально.
+4. Создайте **OAuth Client ID** типа *Web application* с redirect URI
+   `{WEBAPP_URL}/api/google/callback`.
+5. Пропишите `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET` в `.env` для API **и** бота
+   (бот выполняет синхронизацию в фоне) и перезапустите оба процесса.
+
+Как это работает:
+- Пользователь подключает календарь в настройках Mini App. Вход открывается во внешнем
+  браузере (Google не разрешает OAuth внутри WebView Telegram).
+- В аккаунте создаётся календарь «FamilyBot». Общие задачи попадают в календари обоих
+  партнёров, личные — только автора. Событие длится 30 минут и заканчивается в момент дедлайна.
+- Изменения задач пишутся в очередь `calendar_sync_jobs` и отправляются ботом раз в 30 секунд
+  (с повторами при ошибках). Раз в 5 минут бот забирает изменения из Google: перенос или
+  переименование события меняет задачу, удаление события только отвязывает его.
+
 ## 📚 API Документация
 
 После запуска сервера:
@@ -92,8 +124,12 @@ python bot_polling.py
 ### Основные endpoints:
 - `GET /api/tasks` - получить задачи
 - `POST /api/tasks` - создать задачу
+- `GET /api/tasks/{id}` - получить задачу
 - `PATCH /api/tasks/{id}` - обновить задачу
 - `DELETE /api/tasks/{id}` - удалить задачу
+- `GET /api/tasks/stats` - статистика семьи
+- `GET|PATCH|DELETE /api/tasks/profile` - профиль и настройки
+- `GET /api/google/status`, `POST /api/google/auth-url`, `POST /api/google/resync`, `DELETE /api/google` - Google Calendar
 - `GET /health` - health check
 - `GET /api/info` - информация о API
 
@@ -102,16 +138,20 @@ python bot_polling.py
 - `/start` - регистрация и главное меню
 - `/tasks` - открыть веб-приложение с задачами
 - `/stats` - статистика по задачам
-- `/reset` - сброс профиля
+- `/settings` - настройки
+- `/help` - инструкция
 
 ## 🧪 Тестирование
 
 ```bash
 # Установка тестовых зависимостей
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
-# Запуск тестов
+# Юнит-тесты
 pytest tests/ -v
+
+# + интеграционные тесты на PostgreSQL из DATABASE_URL (база будет очищена!)
+INTEGRATION_DB=1 pytest tests/ -v
 
 # Запуск тестов с покрытием
 pytest tests/ -v --cov=app --cov-report=html

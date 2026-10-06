@@ -67,12 +67,16 @@ class TaskRepository:
 
     async def get_pending_tasks_with_deadlines(self, target_time: datetime) -> List[Task]:
         """Получить задачи с дедлайнами для уведомлений"""
-        stmt = select(Task).where(
-            Task.status == "pending",
-            Task.deadline.is_not(None),
-            Task.deadline <= target_time,
-            Task.reminder_sent.is_(False),
-        ).options(selectinload(Task.subtasks))
+        stmt = (
+            select(Task)
+            .where(
+                Task.status == "pending",
+                Task.deadline.is_not(None),
+                Task.deadline <= target_time,
+                Task.reminder_sent.is_(False),
+            )
+            .options(selectinload(Task.subtasks))
+        )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

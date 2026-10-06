@@ -104,7 +104,7 @@ async def handle_text_message(message: types.Message, db_user: User, session):
             return
 
     # Проверяем режим или наличие явного префикса: "л " — личная, "с " — семейная.
-    is_prefix = normalized_text.lower().startswith(('л ', 'с '))
+    is_prefix = normalized_text.lower().startswith(("л ", "с "))
     if db_user.task_creation_mode != TaskCreationMode.MESSAGE and not is_prefix:
         return
 
@@ -130,9 +130,7 @@ async def handle_text_message(message: types.Message, db_user: User, session):
         priority_text = f"\n🎯 Приоритет: {p_map.get(priority.value, priority.value)}"
 
     await message.answer(
-        f"✅ <b>Задача создана!</b>\n\n"
-        f"📌 {h(title)}\n"
-        f"📂 {vis_text}{priority_text}{deadline_text}",
+        f"✅ <b>Задача создана!</b>\n\n" f"📌 {h(title)}\n" f"📂 {vis_text}{priority_text}{deadline_text}",
         reply_markup=task_keyboard(task.id),
     )
 
@@ -161,7 +159,8 @@ async def complete_task_callback(callback: types.CallbackQuery, db_user: User, s
     # В сводном уведомлении несколько задач — убираем только нажатую кнопку
     markup = callback.message.reply_markup
     other_rows = [
-        row for row in (markup.inline_keyboard if markup else [])
+        row
+        for row in (markup.inline_keyboard if markup else [])
         if not any(b.callback_data == callback.data for b in row)
     ]
     if any(b.callback_data and b.callback_data.startswith("complete_task_") for row in other_rows for b in row):
@@ -171,8 +170,11 @@ async def complete_task_callback(callback: types.CallbackQuery, db_user: User, s
 
     html_text = callback.message.html_text or ""
     if change.kind == "rescheduled":
-        new_text = f"🔄 <b>Выполнено!</b> Следующий раз: {format_local(task.deadline, db_user.timezone)}\n{h(task.title)}" \
-            if task.deadline else f"🔄 <b>Выполнено!</b>\n{h(task.title)}"
+        new_text = (
+            f"🔄 <b>Выполнено!</b> Следующий раз: {format_local(task.deadline, db_user.timezone)}\n{h(task.title)}"
+            if task.deadline
+            else f"🔄 <b>Выполнено!</b>\n{h(task.title)}"
+        )
     elif "Дедлайн пропущен" in html_text:
         new_text = f"✅ <b>Выполнено!</b> (Дедлайн был пропущен)\n<s>{h(task.title)}</s>"
     else:

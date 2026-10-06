@@ -32,6 +32,7 @@ def _http_error(e: TaskError) -> HTTPException:
 
 # --- TASKS ---
 
+
 @router.get("/", response_model=list[TaskRead])
 async def get_tasks(user: User = Depends(get_current_user), service: TaskService = Depends(get_service)):
     """Получить задачи семьи, видимые пользователю"""
@@ -65,6 +66,7 @@ async def get_stats(user: User = Depends(get_current_user), service: TaskService
 
 
 # --- PROFILE / MINI APP SETTINGS ---
+
 
 @router.get("/profile", response_model=UserSettingsRead)
 async def get_profile(user: User = Depends(get_current_user)):
@@ -101,6 +103,7 @@ async def delete_profile(user: User = Depends(get_current_user), service: TaskSe
 
 # --- SINGLE TASK ---
 
+
 @router.get("/{task_id}", response_model=TaskRead)
 async def get_task(task_id: int, user: User = Depends(get_current_user), service: TaskService = Depends(get_service)):
     try:
@@ -130,7 +133,9 @@ async def update_task(
 
 
 @router.delete("/{task_id}")
-async def delete_task(task_id: int, user: User = Depends(get_current_user), service: TaskService = Depends(get_service)):
+async def delete_task(
+    task_id: int, user: User = Depends(get_current_user), service: TaskService = Depends(get_service)
+):
     """Удалить задачу"""
     try:
         await service.delete_task(user, task_id)
@@ -141,6 +146,7 @@ async def delete_task(task_id: int, user: User = Depends(get_current_user), serv
 
 
 # --- SUBTASKS ---
+
 
 @router.post("/{task_id}/subtasks", response_model=SubtaskRead)
 async def add_subtask(
@@ -172,7 +178,9 @@ async def toggle_subtask(
 
 
 @router.delete("/subtasks/{sub_id}")
-async def delete_subtask(sub_id: int, user: User = Depends(get_current_user), service: TaskService = Depends(get_service)):
+async def delete_subtask(
+    sub_id: int, user: User = Depends(get_current_user), service: TaskService = Depends(get_service)
+):
     """Удалить подзадачу."""
     try:
         await service.delete_subtask(user, sub_id)

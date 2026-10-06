@@ -1,9 +1,11 @@
+from datetime import datetime
+from enum import Enum
+from typing import List, Optional
+
 import pytz
 from pydantic import BaseModel, Field, field_validator
-from datetime import datetime
-from typing import Optional, List
-from enum import Enum
-from .Task import TaskVisibility, TaskPriority
+
+from .Task import TaskPriority, TaskVisibility
 from .user import TaskCreationMode, UserRole
 
 
@@ -76,11 +78,11 @@ class UserSettingsUpdate(BaseModel):
     role: Optional[UserRole] = None
     timezone: Optional[str] = Field(None, max_length=64)
 
-    @field_validator('timezone')
+    @field_validator("timezone")
     @classmethod
     def validate_timezone(cls, v):
         if v is not None and v not in pytz.all_timezones_set:
-            raise ValueError('Unknown timezone')
+            raise ValueError("Unknown timezone")
         return v
 
     model_config = {"extra": "forbid"}
@@ -91,6 +93,7 @@ def _to_naive_utc(v):
     if isinstance(v, datetime) and v.tzinfo is not None:
         return v.astimezone(pytz.UTC).replace(tzinfo=None)
     return v
+
 
 class TaskRead(BaseModel):
     id: int
@@ -108,7 +111,7 @@ class TaskRead(BaseModel):
     updated_at: Optional[datetime] = None
     subtasks: List[SubtaskRead] = Field(default_factory=list)
 
-    @field_validator('deadline', 'created_at', 'updated_at', 'completed_at', mode='before')
+    @field_validator("deadline", "created_at", "updated_at", "completed_at", mode="before")
     @classmethod
     def ensure_utc(cls, v):
         if isinstance(v, datetime) and v.tzinfo is None:
@@ -126,7 +129,7 @@ class TaskCreate(BaseModel):
     deadline: Optional[datetime] = None
     repeat_rule: Optional[RepeatRuleEnum] = None
 
-    @field_validator('deadline')
+    @field_validator("deadline")
     @classmethod
     def validate_deadline(cls, v):
         return _to_naive_utc(v)
@@ -143,7 +146,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[TaskPriorityEnum] = None
     repeat_rule: Optional[RepeatRuleEnum] = None
 
-    @field_validator('deadline')
+    @field_validator("deadline")
     @classmethod
     def validate_deadline(cls, v):
         return _to_naive_utc(v)

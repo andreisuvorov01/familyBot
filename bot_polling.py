@@ -1,16 +1,17 @@
 import asyncio
-from aiogram import Dispatcher, types, Bot
+
+from aiogram import Bot, Dispatcher, types
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
 
-from app.bot.instance import bot
 from app.bot.handlers.auth_handler import router as auth_router
-from app.bot.handlers.tasks_handler import router as tasks_router
 from app.bot.handlers.settings_handler import router as settings_router
+from app.bot.handlers.tasks_handler import router as tasks_router
+from app.bot.instance import bot
 from app.bot.middlewares import DbSessionMiddleware, UserMiddleware
-from app.services.scheduler import send_morning_notifications, check_deadlines
+from app.core.logging_config import log_with_context, logger
 from app.services.calendar_sync import process_sync_jobs, pull_calendar_changes
-from app.core.logging_config import logger, log_with_context
+from app.services.scheduler import check_deadlines, send_morning_notifications
 
 # Диспетчер
 dp = Dispatcher()
@@ -50,22 +51,12 @@ async def setup_scheduler():
     try:
         # Утренняя сводка: каждые 15 минут, отправляется тем, у кого сейчас 09:00 по их поясу
         scheduler.add_job(
-            send_morning_notifications,
-            "cron",
-            minute="0,15,30,45",
-            id="morning_notifications",
-            replace_existing=True
+            send_morning_notifications, "cron", minute="0,15,30,45", id="morning_notifications", replace_existing=True
         )
-        
+
         # Проверка дедлайнов: Каждую минуту
-        scheduler.add_job(
-            check_deadlines,
-            "interval",
-            minutes=1,
-            id="deadline_check",
-            replace_existing=True
-        )
-        
+        scheduler.add_job(check_deadlines, "interval", minutes=1, id="deadline_check", replace_existing=True)
+
         # Google Calendar: отправка изменений (outbox) и забор изменений из календарей
         scheduler.add_job(
             process_sync_jobs,
@@ -86,7 +77,7 @@ async def setup_scheduler():
 
         scheduler.start()
         logger.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))
-        
+
     except Exception as e:
         logger.error(f"Failed to setup scheduler: {str(e)}")
         raise
@@ -97,27 +88,23 @@ async def main():
     try:
         # 1. Настройка логирования
         logger.info("Starting Family Bot...")
-        
+
         # 2. Запуск планировщика
         await setup_scheduler()
-        
+
         # 3. Настройка меню команд
         await setup_bot_commands(bot)
-        
+
         # 4. Запуск поллинга
         logger.info("🤖 Bot started polling...")
-        
+
         # Удаляем вебхук и начинаем поллинг
         await bot.delete_webhook(drop_pending_updates=True)
-        
-        log_with_context(
-            "INFO",
-            "Bot polling started",
-            bot_id=bot.id
-        )
-        
+
+        log_with_context("INFO", "Bot polling started", bot_id=bot.id)
+
         await dp.start_polling(bot)
-        
+
     except Exception as e:
         logger.error(f"Bot failed to start: {str(e)}")
         raise
@@ -126,7 +113,7 @@ async def main():
         if scheduler.running:
             scheduler.shutdown()
             logger.info("Scheduler stopped")
-        
+
         logger.info("Bot stopped")
 
 

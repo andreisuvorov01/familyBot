@@ -54,11 +54,14 @@ def migrated_db():
 @pytest_asyncio.fixture(autouse=True)
 async def clean_tables(monkeypatch):
     async with engine.begin() as conn:
-        await conn.execute(text(
-            "TRUNCATE calendar_sync_jobs, task_calendar_events, google_accounts, task_completions, "
-            "subtasks, tasks, users RESTART IDENTITY CASCADE"
-        ))
+        await conn.execute(
+            text(
+                "TRUNCATE calendar_sync_jobs, task_calendar_events, google_accounts, task_completions, "
+                "subtasks, tasks, users RESTART IDENTITY CASCADE"
+            )
+        )
     from app.core.security.rate_limiter import rate_limiter
+
     rate_limiter.requests.clear()
     sent = AsyncMock()
     monkeypatch.setattr("app.bot.instance.bot.send_message", sent)
