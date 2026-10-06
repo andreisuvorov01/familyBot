@@ -1,6 +1,7 @@
+import pytz
+
 from app.bot.services.task_service import TaskParser
 from app.core.models.Task import TaskVisibility
-import pytz
 
 
 def test_parse_prefixed_private_task_with_deadline():
@@ -13,7 +14,7 @@ def test_parse_prefixed_private_task_with_deadline():
 
     # Конвертируем обратно в Московское время для проверки
     deadline_utc = pytz.UTC.localize(deadline)
-    deadline_msk = deadline_utc.astimezone(pytz.timezone('Europe/Moscow'))
+    deadline_msk = deadline_utc.astimezone(pytz.timezone("Europe/Moscow"))
     assert deadline_msk.hour == 15
     assert deadline_msk.minute == 30
 

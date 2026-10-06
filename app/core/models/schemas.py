@@ -1,8 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from typing import Optional, List
 from enum import Enum
-from .Task import TaskVisibility, TaskPriority
+from typing import List, Optional
+
+import pytz
+from pydantic import BaseModel, Field, field_validator
+
+from .Task import TaskPriority, TaskVisibility
 from .user import TaskCreationMode, UserRole
 
 
@@ -55,6 +58,7 @@ class SubtaskUpdate(BaseModel):
 
 
 class UserSettingsRead(BaseModel):
+    id: int
     tg_id: int
     username: Optional[str] = None
     role: Optional[UserRole] = None
@@ -62,6 +66,7 @@ class UserSettingsRead(BaseModel):
     notifications_enabled: bool
     morning_summary_enabled: bool
     task_creation_mode: TaskCreationMode
+    timezone: str
 
     model_config = {"from_attributes": True}
 
@@ -71,11 +76,24 @@ class UserSettingsUpdate(BaseModel):
     morning_summary_enabled: Optional[bool] = None
     task_creation_mode: Optional[TaskCreationMode] = None
     role: Optional[UserRole] = None
+    timezone: Optional[str] = Field(None, max_length=64)
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, v):
+        if v is not None and v not in pytz.all_timezones_set:
+            raise ValueError("Unknown timezone")
+        return v
 
     model_config = {"extra": "forbid"}
 
 
-import pytz
+def _to_naive_utc(v):
+    """Дедлайны из клиента приходят с поясом; в БД храним наивный UTC."""
+    if isinstance(v, datetime) and v.tzinfo is not None:
+        return v.astimezone(pytz.UTC).replace(tzinfo=None)
+    return v
+
 
 class TaskRead(BaseModel):
     id: int
@@ -86,10 +104,14 @@ class TaskRead(BaseModel):
     visibility: TaskVisibility
     priority: Optional[TaskPriority] = None
     deadline: Optional[datetime] = None
+    owner_id: int
+    completed_at: Optional[datetime] = None
+    completed_by_id: Optional[int] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     subtasks: List[SubtaskRead] = Field(default_factory=list)
 
-    @field_validator('deadline', 'created_at', mode='before')
+    @field_validator("deadline", "created_at", "updated_at", "completed_at", mode="before")
     @classmethod
     def ensure_utc(cls, v):
         if isinstance(v, datetime) and v.tzinfo is None:
@@ -107,12 +129,10 @@ class TaskCreate(BaseModel):
     deadline: Optional[datetime] = None
     repeat_rule: Optional[RepeatRuleEnum] = None
 
-    @field_validator('deadline')
+    @field_validator("deadline")
     @classmethod
     def validate_deadline(cls, v):
-        # Удаляем проверку на прошлое время, так как она может вызывать ошибки
-        # из-за разницы в миллисекундах или часовых поясах
-        return v
+        return _to_naive_utc(v)
 
     model_config = {"extra": "forbid"}
 
@@ -126,9 +146,41 @@ class TaskUpdate(BaseModel):
     priority: Optional[TaskPriorityEnum] = None
     repeat_rule: Optional[RepeatRuleEnum] = None
 
-    @field_validator('deadline')
+    @field_validator("deadline")
     @classmethod
     def validate_deadline(cls, v):
-        return v
+        return _to_naive_utc(v)
 
     model_config = {"extra": "forbid"}
+
+
+class TaskStatsMember(BaseModel):
+    name: str
+    is_me: bool
+    done_week: int
+    done_month: int
+
+
+class TaskStatsDay(BaseModel):
+    date: str
+    count: int
+
+
+class TaskStats(BaseModel):
+    total: int
+    pending: int
+    done: int
+    overdue: int
+    done_this_week: int
+    streak_days: int
+    week: List[TaskStatsDay]
+    members: List[TaskStatsMember]
+
+
+class GoogleStatus(BaseModel):
+    available: bool
+    connected: bool
+    enabled: bool = False
+    email: Optional[str] = None
+    last_error: Optional[str] = None
+    last_synced_at: Optional[datetime] = None

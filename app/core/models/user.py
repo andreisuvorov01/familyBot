@@ -1,7 +1,11 @@
 import enum
+
 from sqlalchemy import BigInteger, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from .base import Base
+
+DEFAULT_TIMEZONE = "Europe/Moscow"
 
 
 class UserRole(enum.Enum):
@@ -24,4 +28,7 @@ class User(Base):
     family_id: Mapped[str | None] = mapped_column(String(10), index=True)  # Код для связки пары
     notifications_enabled: Mapped[bool] = mapped_column(default=True)
     morning_summary_enabled: Mapped[bool] = mapped_column(default=True)
-    task_creation_mode: Mapped[TaskCreationMode] = mapped_column(Enum(TaskCreationMode), default=TaskCreationMode.COMMAND)
+    task_creation_mode: Mapped[TaskCreationMode] = mapped_column(
+        Enum(TaskCreationMode), default=TaskCreationMode.COMMAND
+    )
+    timezone: Mapped[str] = mapped_column(String(64), default=DEFAULT_TIMEZONE, server_default=DEFAULT_TIMEZONE)

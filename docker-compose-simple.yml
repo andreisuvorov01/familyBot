@@ -30,6 +30,11 @@ services:
       BOT_TOKEN: ${BOT_TOKEN:?BOT_TOKEN must be set}
       WEBAPP_URL: ${WEBAPP_URL:?WEBAPP_URL must be set}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Europe/Moscow}
       TIMEZONE: Europe/Moscow
       DEBUG: ${DEBUG:-false}
       ENVIRONMENT: production
@@ -59,6 +64,12 @@ services:
       DATABASE_URL: postgresql+asyncpg://familyuser:${POSTGRES_PASSWORD:?err}@postgres:5432/familybot
       BOT_TOKEN: ${BOT_TOKEN:?BOT_TOKEN must be set}
       WEBAPP_URL: ${WEBAPP_URL:?WEBAPP_URL must be set}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Europe/Moscow}
       TIMEZONE: Europe/Moscow
       DEBUG: ${DEBUG:-false}
     volumes:
