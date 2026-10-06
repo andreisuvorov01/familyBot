@@ -3,290 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Tasks</title>
+    <meta name="color-scheme" content="light dark">
+    <title>Задачи</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=30" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/style.css?v=40" rel="stylesheet">
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- Header -->
-        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <div>
-                <h1 style="font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Задачи</h1>
-                <button onclick="toggleView()" id="view-toggle-btn" style="color: var(--accent); font-weight: 600; font-size: 15px; background: none; margin-top: 4px;">
-                    Календарь
-                </button>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <button onclick="openHelp()" style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                    <i class="fa-solid fa-circle-info"></i>
-                </button>
-                <div id="user-avatar" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #8b5cf6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                    <span id="avatar-letter" style="font-size: 18px;">?</span>
-                </div>
-            </div>
-        </header>
+<main class="app" id="app">
+    <header class="app-header">
+        <div>
+            <h1 id="page-title">Задачи</h1>
+            <div class="header-subtitle" id="page-subtitle"></div>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="btn-help" aria-label="Помощь"><i class="fa-solid fa-circle-question"></i></button>
+            <button class="avatar" id="btn-avatar" aria-label="Настройки"><span id="avatar-letter">?</span></button>
+        </div>
+    </header>
 
-        <!-- Tabs -->
-        <div class="tab-container">
-            <div class="tab-btn active" onclick="setFilter('all')" data-filter="all">Все</div>
-            <div class="tab-btn" onclick="setFilter('personal')" data-filter="personal">Личные</div>
-            <div class="tab-btn" onclick="setFilter('common')" data-filter="common">Общие</div>
+    <nav class="segmented view-switch" id="view-switch" role="tablist">
+        <button role="tab" data-view="list" class="active"><i class="fa-solid fa-list-check"></i> Список</button>
+        <button role="tab" data-view="calendar"><i class="fa-regular fa-calendar"></i> Календарь</button>
+        <button role="tab" data-view="stats"><i class="fa-solid fa-chart-simple"></i> Статистика</button>
+    </nav>
+
+    <section id="view-tasks">
+        <div id="calendar-host"></div>
+
+        <div class="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" id="search" placeholder="Поиск по задачам, заметкам и пунктам" autocomplete="off" enterkeyhint="search">
+            <button class="clear hidden" id="search-clear" aria-label="Очистить"><i class="fa-solid fa-circle-xmark"></i></button>
         </div>
 
-        <!-- Calendar -->
-        <div id="calendar-wrapper" class="hidden fade-in" style="margin-bottom: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 8px;">
-                <button onclick="changeMonth(-1)" style="color: var(--accent); font-size: 20px;"><i class="fa-solid fa-chevron-left"></i></button>
-                <h2 id="calendar-month-year" style="font-size: 17px; font-weight: 600; text-transform: capitalize;"></h2>
-                <button onclick="changeMonth(1)" style="color: var(--accent); font-size: 20px;"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
-            <div style="text-align: center; margin-top: 12px;">
-                <button onclick="resetCalendarFilter()" id="reset-filter-btn" style="color: var(--accent); font-size: 15px; font-weight: 500; display: none;">Сбросить фильтр</button>
+        <div class="toolbar">
+            <div class="chips" id="filter-chips">
+                <button class="chip active" data-filter="all">Все</button>
+                <button class="chip" data-filter="mine">Мои</button>
+                <button class="chip" data-filter="common">Общие</button>
+                <button class="chip" data-filter="private">Личные</button>
             </div>
         </div>
 
-        <!-- Search and Filter -->
-        <div class="search-container" style="margin-bottom: 16px;">
-            <div style="position: relative;">
-                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); opacity: 0.5;"></i>
-                <input type="text" id="task-search" placeholder="Поиск задач..." style="padding-left: 40px; margin-bottom: 0; background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            </div>
-        </div>
+        <div id="task-list" aria-live="polite"></div>
+    </section>
 
-        <!-- List -->
-        <div id="task-list"></div>
+    <section id="view-stats" class="hidden"></section>
+</main>
+
+<button class="fab" id="fab" aria-label="Новая задача"><i class="fa-solid fa-plus"></i></button>
+
+<div class="overlay" id="overlay"></div>
+<div class="toast-host" id="toast-host"></div>
+
+<!-- ===== Редактор задачи ===== -->
+<div class="sheet" id="sheet-editor" role="dialog" aria-labelledby="editor-title">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="editor-title">Новая задача</h2>
+
+    <div class="field title-field" id="editor-title-field">
+        <input type="text" id="editor-name" placeholder="Что нужно сделать?" maxlength="255" enterkeyhint="done">
+    </div>
+    <div class="field">
+        <textarea id="editor-desc" rows="3" maxlength="1024" placeholder="Заметки"></textarea>
     </div>
 
-    <!-- FAB -->
-    <button onclick="openCreateModal()" class="fab"><i class="fa-solid fa-plus"></i></button>
+    <div class="choice-grid" id="editor-visibility">
+        <button class="choice active" data-visibility="common"><i class="fa-solid fa-users"></i>Семья</button>
+        <button class="choice" data-visibility="private"><i class="fa-solid fa-lock"></i>Личное</button>
+    </div>
+    <div class="muted-note hidden" id="editor-visibility-note">Сделать задачу личной может только её автор</div>
 
-    <!-- Overlay -->
-    <div id="overlay" class="modal-overlay"></div>
-
-    <!-- === Create Modal (CLEAN VERSION) === -->
-    <div id="create-modal" class="bottom-sheet" style="background-color: var(--bg-page);">
-        <div class="sheet-handle"></div>
-        <h2 class="text-xl font-bold mb-5 text-center text-main">Новая задача</h2>
-
-        <!-- Название -->
-        <input type="text" id="new-title" class="input-standalone" placeholder="Название задачи" style="background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-
-        <!-- Описание -->
-        <textarea id="new-desc" rows="3" class="input-standalone" style="background: var(--bg-card); resize: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" placeholder="Заметки"></textarea>
-
-        <!-- Видимость (Большие карточки) -->
-        <div class="visibility-grid">
-            <label>
-                <input type="radio" name="visibility" value="common" checked hidden>
-                <div class="vis-card common">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Семья</span>
-                </div>
-            </label>
-            <label>
-                <input type="radio" name="visibility" value="private" hidden>
-                <div class="vis-card private">
-                    <i class="fa-solid fa-lock"></i>
-                    <span>Личное</span>
-                </div>
-            </label>
-        </div>
-
-        <!-- Настройки (Кнопки-триггеры для пикеров) -->
-        <div class="form-group" style="background: transparent; box-shadow: none;">
-            <div id="trigger-date" class="fake-input" onclick="openDateSheet()">
-                <span class="label">Дата</span>
-                <span class="value placeholder" id="val-date">Нет</span>
-            </div>
-
-            <div id="trigger-repeat" class="fake-input" onclick="openRepeatSheet()">
-                <span class="label">Повтор</span>
-                <span class="value placeholder" id="val-repeat">Нет</span>
-            </div>
-        </div>
+    <div class="section-label">Приоритет</div>
+    <div class="prio-picker" id="editor-priority">
+        <button data-prio="" class="active"><span class="mark">—</span>Нет</button>
+        <button data-prio="low"><span class="mark">!</span>Низкий</button>
+        <button data-prio="medium"><span class="mark">!!</span>Средний</button>
+        <button data-prio="high"><span class="mark">!!!</span>Высокий</button>
     </div>
 
-    <!-- === Custom Action Sheets === -->
-
-    <!-- 1. Repeat Picker -->
-    <div id="sheet-repeat" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <h3 class="text-center font-bold mb-4 text-lg">Повтор</h3>
-        <div class="bg-[var(--bg-card)] rounded-xl overflow-hidden shadow-sm">
-            <div class="action-sheet-item" onclick="selectRepeat(null)">Нет</div>
-            <div class="action-sheet-item" onclick="selectRepeat('daily')">Каждый день</div>
-            <div class="action-sheet-item" onclick="selectRepeat('weekly')">Каждую неделю</div>
-            <div class="action-sheet-item" onclick="selectRepeat('monthly')">Каждый месяц</div>
-        </div>
-    </div>
-
-    <!-- 2. Date Picker -->
-    <div id="sheet-date" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <h3 class="text-xl font-bold mb-5 text-center text-main">Дата и время</h3>
-
-        <!-- Быстрые действия -->
-        <div class="date-quick-actions">
-            <button onclick="selectQuickDate(0)" class="date-btn">Сегодня</button>
-            <button onclick="selectQuickDate(1)" class="date-btn">Завтра</button>
-        </div>
-
-        <!-- Выбор времени (Часы : Минуты) -->
-               <!-- Wheel Time Picker -->
-        <div class="wheel-picker-wrapper">
-            <div class="wheel-highlight"></div>
-
-            <div class="wheel-column" id="wheel-h">
-                <!-- JS заполнит часами -->
-            </div>
-
-            <div class="wheel-separator">:</div>
-
-            <div class="wheel-column" id="wheel-m">
-                <!-- JS заполнит минутами -->
-            </div>
-        </div>
-
-
-        <!-- Календарь -->
-        <div class="picker-calendar-container">
-            <!-- Шапка календаря -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
-                <button onclick="changePickerMonth(-1)" style="color: var(--accent); font-size: 18px;"><i class="fa-solid fa-chevron-left"></i></button>
-                <h2 id="picker-month-year" style="font-size: 16px; font-weight: 600; text-transform: capitalize; color: var(--text-main);"></h2>
-                <button onclick="changePickerMonth(1)" style="color: var(--accent); font-size: 18px;"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-
-            <div id="picker-calendar-grid" class="calendar-grid"></div>
-        </div>
-
-        <button onclick="clearDate()" class="btn-destructive">Убрать дату</button>
-    </div>
-
-    <!-- === Detail Modal === -->
-        <!-- Detail Modal -->
-    <div id="detail-modal" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-
-        <!-- Верхняя панель (Заголовок + Действия) -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
-            <h2 id="detail-title" style="font-size: 28px; font-weight: 800; margin: 0; flex: 1; line-height: 1.2; word-break: break-word; color: var(--text-main);">Заголовок</h2>
-
-            <!-- Кнопки действий (Круглые, аккуратные) -->
-            <div style="display: flex; gap: 12px; margin-left: 16px;">
-                <button onclick="openEditMode()" style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bg-app); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-                <button onclick="deleteTask()" style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Блок Описания (Карточка) -->
-        <div style="background-color: var(--bg-app); padding: 16px; border-radius: 16px; margin-bottom: 24px;">
-            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Описание</label>
-            <p id="detail-desc" style="font-size: 16px; white-space: pre-wrap; margin: 0; line-height: 1.5; color: var(--text-main);">Нет описания</p>
-        </div>
-
-        <!-- Блок Чек-листа (Карточка) -->
-        <div style="margin-bottom: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
-                <h3 style="font-size: 13px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">Подзадачи</h3>
-                <span id="subtasks-count" style="font-size: 12px; color: var(--text-hint); font-weight: 500;">0/0</span>
-            </div>
-
-            <div style="background-color: var(--bg-app); border-radius: 16px; overflow: hidden;">
-                <div id="subtasks-list">
-                    <!-- JS заполнит список -->
-                </div>
-
-                <!-- Поле добавления -->
-                <div style="display: flex; align-items: center; padding: 4px 8px 4px 16px; border-top: 1px solid var(--divider);">
-                    <input type="text" id="new-subtask" placeholder="Добавить пункт..." style="background: transparent; padding: 12px 0; margin: 0; font-size: 15px;">
-                    <button onclick="addSubtask()" style="width: 32px; height: 32px; background-color: var(--accent); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-plus" style="font-size: 14px;"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Кнопка статуса (Большая) -->
-        <button id="btn-status" style="width: 100%; padding: 16px; background-color: var(--accent); color: white; border-radius: 16px; font-weight: 700; font-size: 17px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fa-solid fa-check"></i> Завершить
+    <div class="section-label">Срок</div>
+    <div class="list-group">
+        <button class="list-row" id="editor-date-row">
+            <span class="row-icon" style="background:#ff3b30"><i class="fa-regular fa-calendar"></i></span>
+            <span class="row-label">Дата и время</span>
+            <span class="row-value" id="editor-date-value">Нет</span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+        </button>
+        <button class="list-row" id="editor-repeat-row">
+            <span class="row-icon" style="background:#8e8e93"><i class="fa-solid fa-rotate"></i></span>
+            <span class="row-label">Повтор</span>
+            <span class="row-value" id="editor-repeat-value">Нет</span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
         </button>
     </div>
 
+    <button class="btn btn-primary hidden" id="editor-save">Сохранить</button>
+</div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <h2 class="text-xl font-bold mb-5 text-center text-main">Настройки</h2>
+<!-- ===== Повтор ===== -->
+<div class="sheet" id="sheet-repeat" role="dialog">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">Повтор</h2>
+    <div class="list-group" id="repeat-options">
+        <button class="list-row" data-repeat=""><span class="row-label">Не повторять</span><span class="row-value"></span></button>
+        <button class="list-row" data-repeat="daily"><span class="row-label">Каждый день</span><span class="row-value"></span></button>
+        <button class="list-row" data-repeat="weekly"><span class="row-label">Каждую неделю</span><span class="row-value"></span></button>
+        <button class="list-row" data-repeat="monthly"><span class="row-label">Каждый месяц</span><span class="row-value"></span></button>
+    </div>
+    <p class="muted-note">Когда повторяющаяся задача выполнена, её срок переносится на следующий раз.</p>
+</div>
 
-        <div class="form-group">
-            <div class="form-row">
-                <span class="form-label">Уведомления</span>
-                <label class="switch">
-                    <input type="checkbox" id="settings-notif" checked>
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <div class="form-row">
-                <span class="form-label">Режим создания</span>
-                <select id="settings-mode" class="time-select" style="font-size: 15px !important; color: var(--accent);">
-                    <option value="command">Команды</option>
-                    <option value="message">Сообщения</option>
-                </select>
-            </div>
+<!-- ===== Дата и время ===== -->
+<div class="sheet" id="sheet-date" role="dialog">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="date-title">Дата и время</h2>
+
+    <div class="quick-dates" id="quick-dates"></div>
+    <div class="calendar picker-calendar" id="picker-calendar"></div>
+
+    <div class="time-row">
+        <div>
+            <div class="row-label">Время</div>
+            <div class="time-presets" id="time-presets" style="margin-top:6px"></div>
         </div>
-
-        <div class="form-group">
-            <div class="form-row" onclick="changeRoleFromApp()">
-                <span class="form-label">Изменить роль</span>
-                <span id="current-role" style="color: var(--accent); font-weight: 600;">Муж</span>
-            </div>
+        <div class="wheel">
+            <div class="wheel-col" id="wheel-h"></div>
+            <div class="wheel-sep">:</div>
+            <div class="wheel-col" id="wheel-m"></div>
         </div>
-
-        <button onclick="logout()" class="btn-destructive" style="margin-top: 12px; background: rgba(239, 68, 68, 0.1);">Выйти из аккаунта</button>
     </div>
 
-    <!-- Help Modal -->
-    <div id="help-modal" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <h2 class="text-xl font-bold mb-5 text-center text-main">Как пользоваться?</h2>
+    <div class="btn-row">
+        <button class="btn btn-danger" id="date-clear">Без даты</button>
+        <button class="btn btn-primary" id="date-done">Готово</button>
+    </div>
+</div>
 
-        <div style="background: var(--bg-app); padding: 16px; border-radius: 16px; margin-bottom: 20px;">
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">📝 Создание задач</h3>
-            <p style="font-size: 14px; color: var(--text-main); line-height: 1.5;">Вы можете создавать задачи через сообщения в чате бота. Используйте префиксы:</p>
-            <ul style="font-size: 14px; color: var(--text-main); margin-top: 8px; padding-left: 20px;">
-                <li><b>л </b> — личная задача</li>
-                <li><b>с </b> — общая семейная задача</li>
-            </ul>
-            <p style="font-size: 14px; color: var(--text-main); margin-top: 8px;">Пример: <code>с Купить молоко завтра в 15:00</code></p>
+<!-- ===== Карточка задачи ===== -->
+<div class="sheet" id="sheet-detail" role="dialog" aria-labelledby="detail-title">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+        <h2 class="detail-title" id="detail-title"></h2>
+        <div class="detail-actions">
+            <button class="icon-btn" id="detail-edit" aria-label="Редактировать"><i class="fa-solid fa-pen"></i></button>
+            <button class="icon-btn danger" id="detail-delete" aria-label="Удалить"><i class="fa-solid fa-trash"></i></button>
         </div>
+    </div>
+    <div class="meta-chips" id="detail-meta"></div>
 
-        <div style="background: var(--bg-app); padding: 16px; border-radius: 16px; margin-bottom: 20px;">
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">⚙️ Настройки</h3>
-            <p style="font-size: 14px; color: var(--text-main); line-height: 1.5;">В меню настроек можно переключить режим создания задач:</p>
-            <ul style="font-size: 14px; color: var(--text-main); margin-top: 8px; padding-left: 20px;">
-                <li><b>Команды</b> — создание только через кнопки или спец. команды.</li>
-                <li><b>Сообщения</b> — каждое ваше текстовое сообщение боту станет новой задачей.</li>
-            </ul>
-        </div>
-
-        <div style="background: var(--bg-app); padding: 16px; border-radius: 16px;">
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">🤝 Семья</h3>
-            <p style="font-size: 14px; color: var(--text-main); line-height: 1.5;">Семейные задачи видят оба партнера. При создании или выполнении общей задачи партнер получит уведомление.</p>
-        </div>
-
-        <button onclick="closeModals()" class="btn-destructive" style="margin-top: 20px; background: var(--accent); color: white;">Понятно!</button>
+    <div class="field">
+        <p class="detail-desc" id="detail-desc"></p>
     </div>
 
-    <script src="/static/js/api.js"></script>
-    <script src="/static/js/app.js"></script>
+    <div class="section-label" style="display:flex;justify-content:space-between">
+        <span>Подзадачи</span><span id="subtasks-count"></span>
+    </div>
+    <div class="subtask-progress" id="subtasks-progress"><div></div></div>
+    <div class="list-group">
+        <div id="subtasks-list"></div>
+        <form class="add-subtask" id="subtask-form">
+            <input type="text" id="subtask-input" placeholder="Добавить пункт…" maxlength="255" enterkeyhint="done">
+            <button type="submit" aria-label="Добавить"><i class="fa-solid fa-plus"></i></button>
+        </form>
+    </div>
+
+    <div class="detail-footer">
+        <button class="btn btn-primary" id="detail-status"></button>
+        <div class="muted-note" id="detail-footnote"></div>
+    </div>
+</div>
+
+<!-- ===== Настройки ===== -->
+<div class="sheet" id="sheet-settings" role="dialog">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">Настройки</h2>
+
+    <div class="section-label">Google Календарь</div>
+    <div class="card" id="google-block"></div>
+
+    <div class="section-label">Уведомления</div>
+    <div class="list-group">
+        <label class="list-row">
+            <span class="row-icon" style="background:#ff3b30"><i class="fa-solid fa-bell"></i></span>
+            <span class="row-label">Напоминания и события<small>Дедлайны и действия партнёра</small></span>
+            <span class="switch"><input type="checkbox" id="set-notifications"><span class="track"></span></span>
+        </label>
+        <label class="list-row">
+            <span class="row-icon" style="background:#ff9f0a"><i class="fa-solid fa-mug-hot"></i></span>
+            <span class="row-label">Утренняя сводка<small>В 09:00 по вашему времени</small></span>
+            <span class="switch"><input type="checkbox" id="set-morning"><span class="track"></span></span>
+        </label>
+    </div>
+
+    <div class="section-label">Бот</div>
+    <div class="list-group">
+        <button class="list-row" id="set-mode-row">
+            <span class="row-icon" style="background:#5856d6"><i class="fa-solid fa-comment-dots"></i></span>
+            <span class="row-label">Создание задач в чате</span>
+            <span class="row-value set" id="set-mode-value"></span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+        </button>
+        <button class="list-row" id="set-tz-row">
+            <span class="row-icon" style="background:#34c759"><i class="fa-solid fa-earth-europe"></i></span>
+            <span class="row-label">Часовой пояс</span>
+            <span class="row-value set" id="set-tz-value"></span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+        </button>
+        <button class="list-row" id="set-role-row">
+            <span class="row-icon" style="background:#007aff"><i class="fa-solid fa-user"></i></span>
+            <span class="row-label">Роль в семье</span>
+            <span class="row-value set" id="set-role-value"></span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+        </button>
+    </div>
+
+    <div class="list-group">
+        <button class="list-row destructive" id="set-logout">Удалить профиль</button>
+    </div>
+</div>
+
+<!-- ===== Помощь ===== -->
+<div class="sheet" id="sheet-help" role="dialog">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">Как пользоваться</h2>
+    <div class="help-block">
+        <h3>📝 Задачи в чате</h3>
+        <p>Напишите боту сообщение с префиксом:</p>
+        <ul>
+            <li><b>л</b> — личная задача, <b>с</b> — общая семейная</li>
+            <li><code>!</code>, <code>!!</code>, <code>!!!</code> — приоритет</li>
+        </ul>
+        <p style="margin-top:8px">Пример: <code>с Купить молоко завтра в 15:00 !!</code></p>
+    </div>
+    <div class="help-block">
+        <h3>👆 Жесты</h3>
+        <ul>
+            <li>Нажмите на кружок, чтобы выполнить задачу</li>
+            <li>Смахните вправо — выполнить, влево — удалить</li>
+            <li>Потяните окно вниз, чтобы закрыть его</li>
+        </ul>
+    </div>
+    <div class="help-block">
+        <h3>🤝 Семья</h3>
+        <p>Общие задачи видят оба партнёра, личные — только автор. При создании и выполнении общей задачи партнёр получает уведомление.</p>
+    </div>
+    <div class="help-block">
+        <h3>📅 Google Календарь</h3>
+        <p>Подключите его в настройках: задачи с дедлайном появятся в отдельном календаре «FamilyBot». Если перенести событие в календаре, срок задачи тоже изменится.</p>
+    </div>
+    <button class="btn btn-primary" data-close-sheet>Понятно</button>
+</div>
+
+<script type="module" src="/static/js/main.js?v=40"></script>
 </body>
 </html>
