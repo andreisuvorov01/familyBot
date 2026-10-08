@@ -505,6 +505,14 @@ input, textarea, select {
 .member .progress div { height: 100%; background: var(--success); border-radius: 4px; }
 .member .count { font-weight: 700; min-width: 28px; text-align: right; }
 
+.level + .level { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.level-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 6px; }
+.level .lvl { color: var(--text-secondary); font-weight: 700; }
+.level .progress { display: block; height: 8px; border-radius: 4px; background: var(--bg-muted); overflow: hidden; }
+.level .progress div { height: 100%; background: var(--accent); border-radius: 4px; }
+.badges { display: flex; gap: 8px; margin-top: 10px; font-size: 22px; }
+.badge.locked { filter: grayscale(1); opacity: 0.25; }
+
 /* ---------- Sheets ---------- */
 .overlay {
     position: fixed;

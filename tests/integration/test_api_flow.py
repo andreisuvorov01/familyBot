@@ -97,6 +97,9 @@ async def test_stats(client, family):
     assert stats["total"] == 2 and stats["done"] == 1 and stats["done_this_week"] == 1
     assert stats["streak_days"] == 1
     assert {m["name"]: m["done_week"] for m in stats["members"]} == {"Вы": 0, "@wife": 1}
+    wife = next(m for m in stats["members"] if not m["is_me"])
+    assert wife["xp"] == 10 and wife["level"] == 1
+    assert [b["id"] for b in wife["badges"] if b["earned"]] == ["first"]
 
 
 async def test_profile_timezone_validation(client, family):

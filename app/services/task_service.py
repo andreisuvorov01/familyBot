@@ -15,7 +15,7 @@ from app.core.models.user import User, UserRole
 from app.core.repositories.task_repository import TaskRepository
 from app.core.repositories.user_repository import UserRepository
 from app.core.timeutils import format_local, next_occurrence, to_local, utcnow
-from app.services import calendar_sync
+from app.services import calendar_sync, gamification
 from app.services.notifications import display_name, h, notify_users
 
 UPDATABLE_FIELDS = {"title", "description", "deadline", "visibility", "priority", "repeat_rule", "status"}
@@ -249,12 +249,13 @@ class TaskService:
         tasks = await self.tasks.get_family_tasks(user)
         now = utcnow()
         pending = [t for t in tasks if t.status == "pending"]
-        completions = await self.tasks.get_completions(user.family_id or "", now - timedelta(days=60))
+        completions = await self.tasks.get_completions(user.family_id or "", datetime(1970, 1, 1))
 
         members = [user] + await self.users.get_partners(user)
         week_ago, month_ago = now - timedelta(days=7), now - timedelta(days=30)
         week_by_user = Counter(c.user_id for c in completions if c.completed_at >= week_ago)
         month_by_user = Counter(c.user_id for c in completions if c.completed_at >= month_ago)
+        total_by_user = Counter(c.user_id for c in completions)
 
         # Серия: сколько дней подряд (по поясу пользователя) семья что-то выполняла
         done_days = {to_local(c.completed_at, user.timezone).date() for c in completions}
@@ -286,6 +287,7 @@ class TaskService:
                     "is_me": m.id == user.id,
                     "done_week": week_by_user.get(m.id, 0),
                     "done_month": month_by_user.get(m.id, 0),
+                    **gamification.progress(total_by_user.get(m.id, 0), streak),
                 }
                 for m in members
             ],

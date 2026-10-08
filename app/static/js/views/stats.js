@@ -28,6 +28,13 @@ export function renderStats(container, stats) {
             <span class="count">${m.done_week}</span>
         </div>`).join('');
 
+    const levels = stats.members.map((m) => `
+        <div class="level">
+            <div class="level-head"><span class="name">${escapeHtml(m.name)}</span><span class="lvl">Ур. ${m.level} · ${m.xp} XP</span></div>
+            <span class="progress"><div style="width:${Math.round((m.level_xp / m.level_xp_needed) * 100)}%"></div></span>
+            <div class="badges">${m.badges.map((b) => `<span class="badge ${b.earned ? '' : 'locked'}" title="${escapeHtml(b.title)}">${b.icon}</span>`).join('')}</div>
+        </div>`).join('');
+
     const percent = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;
     const streakText = stats.streak_days
         ? `${stats.streak_days} ${pluralize(stats.streak_days, 'день', 'дня', 'дней')} подряд`
@@ -39,6 +46,10 @@ export function renderStats(container, stats) {
             <div class="stat-card"><div class="icon">🔥</div><div class="value">${stats.streak_days}</div><div class="label">${escapeHtml(streakText)}</div></div>
             <div class="stat-card"><div class="icon">📋</div><div class="value">${stats.pending}</div><div class="label">в работе</div></div>
             <div class="stat-card"><div class="icon">⏰</div><div class="value" style="${stats.overdue ? 'color:var(--danger)' : ''}">${stats.overdue}</div><div class="label">просрочено</div></div>
+        </div>
+        <div class="card">
+            <h3>Уровни и достижения</h3>
+            ${levels}
         </div>
         <div class="card">
             <h3>Последние 7 дней</h3>

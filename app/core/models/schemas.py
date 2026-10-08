@@ -154,11 +154,23 @@ class TaskUpdate(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class Badge(BaseModel):
+    id: str
+    icon: str
+    title: str
+    earned: bool
+
+
 class TaskStatsMember(BaseModel):
     name: str
     is_me: bool
     done_week: int
     done_month: int
+    xp: int
+    level: int
+    level_xp: int
+    level_xp_needed: int
+    badges: List[Badge]
 
 
 class TaskStatsDay(BaseModel):
